@@ -57,6 +57,7 @@ sunday = "Dimanĉo"
 
 # Things the frontend says by itself.
 not_in_channel = "Vi ne estas en kanalo. Uzu /join <kanalo>, aŭ unue /login."
+not_in_channel_logged_in = "Vi ne estas en kanalo. Uzu /join <kanalo>."
 reply_needs_channel = "Respondoj funkcias en kanalo."
 nothing_to_reply_to = "Neniu mesaĝo por respondi."
 moderation_needs_channel = "Moderigado funkcias en kanalo."

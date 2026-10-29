@@ -57,6 +57,7 @@ sunday = "日曜日"
 
 # Things the frontend says by itself.
 not_in_channel = "チャンネルにいません。/join <チャンネル> を使うか、先に /login してください。"
+not_in_channel_logged_in = "チャンネルにいません。/join <チャンネル> を使ってください。"
 reply_needs_channel = "返信はチャンネル内でできます。"
 nothing_to_reply_to = "返信するメッセージがありません。"
 moderation_needs_channel = "モデレートはチャンネル内でできます。"

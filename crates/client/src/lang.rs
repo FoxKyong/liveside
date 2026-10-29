@@ -265,6 +265,9 @@ catalogue! {
     sunday,
     // Things the frontend says by itself.
     not_in_channel,
+    /// The same in the message line of a window that is logged in,
+    /// where logging in is no advice.
+    not_in_channel_logged_in,
     reply_needs_channel,
     nothing_to_reply_to,
     moderation_needs_channel,

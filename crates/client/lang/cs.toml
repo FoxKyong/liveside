@@ -57,6 +57,7 @@ sunday = "Neděle"
 
 # Things the frontend says by itself.
 not_in_channel = "Nejsi v kanálu. Použij /join <kanál>, nebo nejdřív /login."
+not_in_channel_logged_in = "Nejsi v kanálu. Použij /join <kanál>."
 reply_needs_channel = "Odpovídat jde jen v kanálu."
 nothing_to_reply_to = "Není na co odpovědět."
 moderation_needs_channel = "Moderovat jde jen v kanálu."

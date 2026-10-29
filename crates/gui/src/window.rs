@@ -2827,7 +2827,9 @@ fn refresh_placeholder(ui: &Rc<Ui>) {
             strings.send_placeholder,
             &[("channel", &format!("#{login}"))],
         ))),
-        None => ui.entry.set_placeholder_text(Some(strings.not_in_channel)),
+        None => ui
+            .entry
+            .set_placeholder_text(Some(strings.not_in_channel_logged_in)),
     }
 }
 

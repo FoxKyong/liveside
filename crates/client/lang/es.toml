@@ -57,6 +57,7 @@ sunday = "Domingo"
 
 # Things the frontend says by itself.
 not_in_channel = "No estás en un canal. Usa /join <canal>, o primero /login."
+not_in_channel_logged_in = "No estás en un canal. Usa /join <canal>."
 reply_needs_channel = "Las respuestas funcionan dentro de un canal."
 nothing_to_reply_to = "No hay ningún mensaje al que responder."
 moderation_needs_channel = "La moderación funciona dentro de un canal."

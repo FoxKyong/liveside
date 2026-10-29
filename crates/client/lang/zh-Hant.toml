@@ -57,6 +57,7 @@ sunday = "星期日"
 
 # Things the frontend says by itself.
 not_in_channel = "不在頻道中。請使用 /join <頻道>，或先 /login。"
+not_in_channel_logged_in = "不在頻道中。請使用 /join <頻道>。"
 reply_needs_channel = "回覆需要在頻道中進行。"
 nothing_to_reply_to = "沒有可回覆的訊息。"
 moderation_needs_channel = "管理需要在頻道中進行。"

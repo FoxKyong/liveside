@@ -57,6 +57,7 @@ sunday = "Chủ Nhật"
 
 # Things the frontend says by itself.
 not_in_channel = "Bạn không ở trong kênh nào. Dùng /join <kênh>, hoặc /login trước."
+not_in_channel_logged_in = "Bạn không ở trong kênh nào. Dùng /join <kênh>."
 reply_needs_channel = "Trả lời chỉ dùng được trong kênh."
 nothing_to_reply_to = "Không có tin nhắn nào để trả lời."
 moderation_needs_channel = "Kiểm duyệt chỉ dùng được trong kênh."

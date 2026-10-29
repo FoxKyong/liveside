@@ -57,6 +57,7 @@ sunday = "الأحد"
 
 # Things the frontend says by itself.
 not_in_channel = "لست في قناة. استخدم /join <قناة>، أو /login أولًا."
+not_in_channel_logged_in = "لست في قناة. استخدم /join <قناة>."
 reply_needs_channel = "الردود تعمل داخل قناة."
 nothing_to_reply_to = "لا توجد رسالة للرد عليها."
 moderation_needs_channel = "الإشراف يعمل داخل قناة."

@@ -57,6 +57,7 @@ sunday = "Воскресенье"
 
 # Things the frontend says by itself.
 not_in_channel = "Вы не в канале. Используйте /join <канал> или сначала /login."
+not_in_channel_logged_in = "Вы не в канале. Используйте /join <канал>."
 reply_needs_channel = "Отвечать можно в канале."
 nothing_to_reply_to = "Нет сообщения, на которое можно ответить."
 moderation_needs_channel = "Модерация работает в канале."

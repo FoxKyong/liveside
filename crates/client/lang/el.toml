@@ -57,6 +57,7 @@ sunday = "Κυριακή"
 
 # Things the frontend says by itself.
 not_in_channel = "Δεν είσαι σε κανάλι. Χρησιμοποίησε /join <κανάλι> ή πρώτα /login."
+not_in_channel_logged_in = "Δεν είσαι σε κανάλι. Χρησιμοποίησε /join <κανάλι>."
 reply_needs_channel = "Οι απαντήσεις λειτουργούν μέσα σε κανάλι."
 nothing_to_reply_to = "Δεν υπάρχει μήνυμα για απάντηση."
 moderation_needs_channel = "Η εποπτεία λειτουργεί μέσα σε κανάλι."

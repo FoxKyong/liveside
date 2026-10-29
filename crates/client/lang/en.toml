@@ -61,6 +61,9 @@ sunday = "Sunday"
 
 # Things the frontend says by itself.
 not_in_channel = "Not in a channel. Use /join <channel>, or /login first."
+# The same in the message line of a window that is logged in, where
+# logging in is no advice.
+not_in_channel_logged_in = "Not in a channel. Use /join <channel>."
 reply_needs_channel = "Replies work in a channel."
 nothing_to_reply_to = "No message to reply to."
 moderation_needs_channel = "Moderation works in a channel."

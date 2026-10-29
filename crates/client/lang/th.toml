@@ -57,6 +57,7 @@ sunday = "อาทิตย์"
 
 # Things the frontend says by itself.
 not_in_channel = "ไม่ได้อยู่ในช่อง ใช้ /join <ช่อง> หรือ /login ก่อน"
+not_in_channel_logged_in = "ไม่ได้อยู่ในช่อง ใช้ /join <ช่อง>"
 reply_needs_channel = "การตอบกลับใช้ได้ในช่อง"
 nothing_to_reply_to = "ไม่มีข้อความให้ตอบกลับ"
 moderation_needs_channel = "การดูแลใช้ได้ในช่อง"
