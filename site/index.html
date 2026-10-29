@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liveside</title>
+<meta name="description" content="A Twitch chat client for Linux, for viewers, moderators and broadcasters. One engine, a window and a terminal. Careful with what strangers post, and with your data.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<!--
+  The project page at https://liveside.jifox.net. The server sends a
+  Content-Security-Policy that allows no scripts and nothing from other
+  sites, so everything here is this one file and the pictures beside it.
+  The pictures are docs/images, copied next to it as images/.
+-->
+<style>
+:root {
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --text: #1d2021;
+  --muted: #5b6164;
+  --line: #e2dfda;
+  --accent: #1c7c74;
+  --accent-text: #15625b;
+  --accent-soft: #e3f1ef;
+  --alert: #c8373c;
+  --code-bg: #f1eeea;
+  --shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 8px 24px rgb(0 0 0 / 8%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161819;
+    --surface: #1f2223;
+    --text: #e8e6e3;
+    --muted: #a3a8aa;
+    --line: #33383a;
+    --accent: #3fb3a8;
+    --accent-text: #6cc9bf;
+    --accent-soft: #18302e;
+    --alert: #f07074;
+    --code-bg: #262a2b;
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 35%);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  /* No system-ui: on Linux it has no fontconfig family of its own and
+     can come out as whatever font is first, a monospace one included. */
+  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Adwaita Sans", Cantarell, "Noto Sans", Ubuntu, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+a { color: var(--accent-text); text-underline-offset: 0.15em; }
+a:hover { text-decoration-thickness: 2px; }
+code {
+  font: 0.9em/1.4 ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+pre {
+  background: var(--code-bg);
+  padding: 14px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 12px 0 0;
+}
+pre code { background: none; padding: 0; }
+img { display: block; max-width: 100%; height: auto; }
+figure { margin: 0; }
+figure img {
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+figcaption { color: var(--muted); font-size: 0.92rem; margin-top: 10px; }
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 720px) { .wrap { padding: 0 28px; } }
+
+header.top { border-bottom: 1px solid var(--line); }
+header.top .wrap {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; min-height: 64px; flex-wrap: wrap;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none;
+}
+.brand img { width: 32px; height: 32px; }
+nav ul { list-style: none; display: flex; gap: 18px; margin: 0; padding: 0; flex-wrap: wrap; }
+nav a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
+nav a:hover { color: var(--text); }
+
+.hero { padding: 56px 0 40px; text-align: center; }
+.hero h1 { font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.1; margin: 0 0 14px; letter-spacing: -0.02em; }
+.hero .lead { font-size: 1.2rem; color: var(--muted); margin: 0 auto 8px; max-width: 36em; }
+.hero .motto { font-weight: 600; margin: 0 auto 28px; max-width: 36em; }
+.actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px; }
+.button {
+  display: inline-block; padding: 11px 20px; border-radius: 8px;
+  font-weight: 600; text-decoration: none; border: 1px solid var(--line);
+  color: var(--text); background: var(--surface);
+}
+.button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (prefers-color-scheme: dark) { .button.primary { color: #0d1b1a; } }
+.hero figure { max-width: 1002px; margin: 0 auto; }
+
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+section h2 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 12px; letter-spacing: -0.01em; }
+section > .wrap > p.intro { color: var(--muted); max-width: 44em; margin: 0 0 28px; }
+h3 { font-size: 1.1rem; margin: 0 0 6px; }
+
+.split { display: grid; gap: 28px; align-items: start; }
+@media (min-width: 860px) { .split { grid-template-columns: 1fr 1fr; gap: 40px; } }
+
+.cards { display: grid; gap: 16px; }
+@media (min-width: 640px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 960px) { .cards.three { grid-template-columns: repeat(3, 1fr); } }
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 18px 20px;
+}
+.card p { margin: 0; color: var(--muted); font-size: 0.97rem; }
+
+ul.points { margin: 0; padding-left: 1.2em; }
+ul.points li { margin: 0 0 10px; }
+ul.points li::marker { color: var(--accent); }
+
+.safety { background: var(--accent-soft); }
+.safety .card { background: var(--surface); }
+
+table { border-collapse: collapse; width: 100%; font-size: 0.97rem; }
+th, td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; }
+.table-scroll { overflow-x: auto; }
+
+.note { color: var(--muted); font-size: 0.95rem; }
+.spaced { margin-top: 36px; }
+
+footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--muted); font-size: 0.93rem; }
+footer p { margin: 0 0 6px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="icon.svg" alt="" width="32" height="32">Liveside</a>
+    <nav aria-label="Sections">
+      <ul>
+        <li><a href="#safety">Safety</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="https://github.com/foxkyong/liveside">Source</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap">
+      <h1>Liveside</h1>
+      <p class="lead">A Twitch chat client for Linux, for viewers, moderators and broadcasters.</p>
+      <p class="motto">One engine, a window and a terminal. Careful with what strangers post, and with your data.</p>
+      <div class="actions">
+        <a class="button primary" href="#install">Install</a>
+        <a class="button" href="https://github.com/foxkyong/liveside">Source on GitHub</a>
+      </div>
+      <figure>
+        <picture>
+          <source srcset="images/main-dark.png" media="(prefers-color-scheme: dark)">
+          <img src="images/main-light.png" width="1002" height="728"
+               alt="The Liveside window: a channel's chat with emotes, badges, highlighted lines and a message held by AutoMod, the channel list on the left and the people in the channel on the right">
+        </picture>
+        <figcaption>The window follows your desktop's light or dark theme, as this page does. Screenshots are from the demo mode, with made-up channels and people.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap split">
+      <div>
+        <h2>Why another chat client</h2>
+        <p><a href="https://github.com/chatty/chatty">Chatty</a> has long been a favourite desktop client for reading and moderating Twitch chat. Liveside started as a rewrite of what it does, from scratch and in Rust, on Twitch's current interfaces, and keeps Chatty's rule language, so highlight and ignore lists carry over.</p>
+        <p>It adds what a chat window kept open through a whole stream needs today: the broadcaster's own tools beside the chat, a terminal frontend that works over SSH, and an engine that can run on as a background service while frontends come and go.</p>
+      </div>
+      <div>
+        <h2>Why it is careful</h2>
+        <p>A chat client shows text from strangers all day, to people who are easy to find. Chat is where moderators get phished and where streamers get sent links that log their IP address.</p>
+        <p>So Liveside treats everything in chat as untrusted, keeps the login out of reach of what does not need it, and sends nothing about you anywhere the chat does not need it to go. That was part of the plan from the start, not added later.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="safety" id="safety">
+    <div class="wrap">
+      <h2>Safety and privacy</h2>
+      <p class="intro">What a link in chat really is, before it opens. What leaves your computer, and to whom.</p>
+      <div class="split">
+        <figure>
+          <img src="images/phishing.png" width="559" height="410" loading="lazy"
+               alt="A link to a look-alike of paypal.com: the dialog shows the real address, xn--pypal-4ve.com, and warns that its letters imitate a known name">
+          <figcaption>A look-alike address is shown as it really is before it opens.</figcaption>
+        </figure>
+        <figure>
+          <img src="images/links.png" width="619" height="372" loading="lazy"
+               alt="Links in chat with what was found out about them: one leads to a private address and is not followed, one is clean by VirusTotal and leads on to youtube.com">
+          <figcaption>Where a link leads, and what VirusTotal says, without opening it.</figcaption>
+        </figure>
+      </div>
+      <div class="cards spaced">
+        <div class="card">
+          <h3>Links are untrusted</h3>
+          <p>A link opens only after you have seen its whole address, with the host emphasized; a look-alike letter shows up in punycode. Where it leads can be found out without opening it, and never by going into your own network. VirusTotal is asked only about a link you pick, with your own key.</p>
+        </div>
+        <div class="card">
+          <h3>Your login is kept close</h3>
+          <p>You log in with a code at twitch.tv/activate, so Liveside never sees your password. The token is in a file only you can read, and your own bots never get it: Liveside speaks for them.</p>
+        </div>
+        <div class="card">
+          <h3>Nothing goes where it need not</h3>
+          <p>Chat goes to Twitch. Emote providers learn which channels you read, and that can be switched off, as can the local chat log. No telemetry, no crash reports, no update check.</p>
+        </div>
+        <div class="card">
+          <h3>You can check it</h3>
+          <p><code>/privacy</code> lists what is sent where and what is stored, from the settings in use, and <a href="https://github.com/foxkyong/liveside/blob/main/docs/privacy.md">docs/privacy.md</a> says how to verify it yourself.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>What it does</h2>
+      <div class="cards three">
+        <div class="card">
+          <h3>Chat</h3>
+          <p>Several channels at once, side by side or in windows of their own. Emotes from Twitch, 7TV, BetterTTV and FrankerFaceZ, animated ones included. Replies, mentions, search, whispers, Shared Chat, and a local log, so a channel you rejoin comes back with its recent lines.</p>
+        </div>
+        <div class="card">
+          <h3>Your own rules</h3>
+          <p>Highlight, ignore and filter rules in Chatty's syntax, an address book, custom commands, hotkeys, and marking what somebody keeps repeating.</p>
+        </div>
+        <div class="card">
+          <h3>Moderation</h3>
+          <p>Timeouts, bans, warnings, room modes, moderators and VIPs, Shield Mode, blocked terms and suspicious users. AutoMod's queue, unban requests and the moderation log in one Review panel.</p>
+        </div>
+        <div class="card">
+          <h3>For broadcasters</h3>
+          <p>Polls, predictions, channel point rewards and their queue. Title, category, tags and schedule. Raids, shoutouts, markers, ad breaks and clips, and a graph of viewers over the stream.</p>
+        </div>
+        <div class="card">
+          <h3>Notifications</h3>
+          <p>For mentions, whispers, channels going live and messages waiting for a moderator, with sounds. Streamlink to watch the stream, and a Stream Chat window for a broadcast.</p>
+        </div>
+        <div class="card">
+          <h3>Languages</h3>
+          <p>English and Czech, and machine translations into Spanish, Russian, Ukrainian, Esperanto, Greek, Korean, Japanese, Chinese, Thai, Vietnamese and Arabic.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap split">
+      <figure>
+        <img src="images/review.png" width="1002" height="728" loading="lazy"
+             alt="The Review panel: unban requests, messages held by AutoMod and channel point redemptions waiting for a decision, and the moderation log">
+        <figcaption>What waits for a moderator: AutoMod, unban requests, rewards.</figcaption>
+      </figure>
+      <div>
+        <h2>For moderators and broadcasters</h2>
+        <p>What waits for a decision is in one place, beside the chat rather than in a browser tab: messages held by AutoMod, unban requests and channel point redemptions, with the moderation log under them.</p>
+        <p>The channel's own tools, from polls and predictions to raids and the schedule, are in the Moderate menu, and Twitch's suspicious users are marked in the chat, as help against ban evaders.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap split">
+      <div>
+        <h2>A window, a terminal, a daemon</h2>
+        <p><code>liveside-tui</code> does what the window does, in a terminal and over SSH, and reads well on a dark background or a light one.</p>
+        <p><code>liveside-daemon</code> keeps the chat running without a frontend. Start the window or the terminal with <code>--daemon</code> to attach to it, and several can be attached at once; a systemd user service for it comes along.</p>
+      </div>
+      <figure>
+        <picture>
+          <source srcset="images/tui-light.png" media="(prefers-color-scheme: light)">
+          <img src="images/tui-dark.png" width="834" height="604" loading="lazy"
+               alt="The terminal client in a channel, with highlighted lines and the people in the channel">
+        </picture>
+        <figcaption>The terminal client.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap split">
+      <figure>
+        <img src="images/bot-gui.png" width="619" height="248" loading="lazy"
+             alt="A weather bot answering !weather Brno in the chat">
+        <figcaption>A bot of your own answering in the chat.</figcaption>
+      </figure>
+      <div>
+        <h2>Bots of your own</h2>
+        <p>A bot is a program Liveside starts and talks to, in any language, speaking JSON one line at a time. It needs no login of its own and never sees yours: Liveside reads the chat for it and says what it asks. <a href="https://github.com/foxkyong/liveside/blob/main/docs/bots.md">docs/bots.md</a> has how, and an example that answers with the weather.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Install</h2>
+      <p class="intro">On Arch Linux, install <a href="https://aur.archlinux.org/packages/liveside"><code>liveside</code></a> from the AUR. A Flatpak bundle is planned for the first release; until then, build it from source.</p>
+      <div class="split">
+        <div>
+          <h3>From source</h3>
+          <p>You need Rust 1.98 or newer (from <a href="https://rustup.rs">rustup</a>; most distributions carry an older one) and GTK 4.10 or newer for development: <code>libgtk-4-dev</code> on Debian and Ubuntu, <code>gtk4-devel</code> on Fedora, <code>gtk4</code> on Arch Linux.</p>
+<pre><code>git clone https://github.com/foxkyong/liveside
+cd liveside
+cargo build --release
+target/release/liveside-gui --demo</code></pre>
+          <p class="note">The programs are <code>liveside-gui</code>, <code>liveside-tui</code> and <code>liveside-daemon</code>. The AUR package also installs the launcher entry, the icon and the daemon's user service.</p>
+        </div>
+        <div>
+          <h3>First steps</h3>
+          <ul class="points">
+            <li>Start <code>liveside-gui</code>, or <code>liveside-tui</code> in a terminal.</li>
+            <li>Press <strong>Log in</strong> (in the terminal, <code>/login</code>) and enter the code it shows at twitch.tv/activate.</li>
+            <li>Type a channel's name under the channel list and press <strong>Join</strong> (in the terminal, <code>/join name</code>).</li>
+            <li>To look around without a Twitch account, start it with <code>--demo</code>.</li>
+          </ul>
+          <p class="note"><a href="https://github.com/foxkyong/liveside/blob/main/docs/usage.md">docs/usage.md</a> has the keys, the commands and every setting.</p>
+        </div>
+      </div>
+
+      <h3 class="spaced">Where it runs</h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Desktop</th><th>Tried on</th></tr></thead>
+          <tbody>
+            <tr><td>labwc (Wayland)</td><td>Arch Linux</td></tr>
+            <tr><td>KDE Plasma 6.8 (Wayland)</td><td>Arch Linux</td></tr>
+            <tr><td>GNOME 50 (Wayland)</td><td>Ubuntu 26.04</td></tr>
+            <tr><td>Cinnamon 6.6 (X11)</td><td>Linux Mint 22.3</td></tr>
+            <tr><td>COSMIC 1.10 (Wayland)</td><td>CachyOS</td></tr>
+            <tr><td>Xfce 4.20 (X11)</td><td>Debian 13</td></tr>
+            <tr><td>Windows 11</td><td>through WSL2, with Debian 13 inside, without notifications</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">On macOS it builds with Homebrew and runs, but notifications do not work there yet.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Liveside is free software under the <a href="https://github.com/foxkyong/liveside/blob/main/LICENSE">GPL, version 3 or later</a>. © Radim Vančo (FoxKyong). <a href="https://github.com/foxkyong/liveside/issues">Report a problem</a>.</p>
+    <p>This page has no scripts, no cookies and nothing from other sites, and the web server keeps no access log.</p>
+    <p>Liveside is not made by Twitch, nor endorsed by it.</p>
+  </div>
+</footer>
+
+</body>
+</html>

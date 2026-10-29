@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- What software centres show about Liveside. -->
+<component type="desktop-application">
+  <id>net.jifox.liveside.Liveside</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>Liveside</name>
+  <summary>Read and moderate Twitch chat</summary>
+  <developer id="net.jifox">
+    <name>Radim Vančo</name>
+  </developer>
+
+  <description>
+    <p>
+      Liveside is a Twitch chat client for viewers, moderators and
+      broadcasters, with a window and a terminal frontend over one engine
+      that can also run on as a background service.
+    </p>
+    <ul>
+      <li>Chat in several channels, with emotes from Twitch, 7TV, BetterTTV and FrankerFaceZ, replies and whispers</li>
+      <li>Highlight, ignore and filter rules in Chatty's syntax, custom commands and hotkeys</li>
+      <li>Moderation: timeouts, bans, AutoMod's queue, unban requests and the moderation log</li>
+      <li>For broadcasters: polls, predictions, channel point rewards, the channel's title and schedule, raids and clips</li>
+      <li>Notifications for mentions, whispers and channels going live</li>
+      <li>Bots of your own, started by Liveside</li>
+    </ul>
+    <p>
+      Security and privacy were part of its plan from the start. Chat is
+      text from strangers, and Liveside treats it as untrusted:
+    </p>
+    <ul>
+      <li>A link opens only after its whole address has been shown, with look-alike letters made visible</li>
+      <li>Where a link leads can be found out without opening the page, and checked with VirusTotal on request</li>
+      <li>It logs in with a code, so it never sees your password, and your bots never get your login</li>
+      <li>No telemetry, and a report of everything it sends and stores</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">net.jifox.liveside.Liveside.desktop</launchable>
+  <provides>
+    <binary>liveside-gui</binary>
+    <binary>liveside-tui</binary>
+    <binary>liveside-daemon</binary>
+  </provides>
+
+  <url type="homepage">https://liveside.jifox.net</url>
+  <url type="vcs-browser">https://github.com/foxkyong/liveside</url>
+  <url type="bugtracker">https://github.com/foxkyong/liveside/issues</url>
+
+  <!-- From the demo, with made-up channels and people. Pinned to the
+       release's tag, so what a version shows does not change. -->
+  <screenshots>
+    <screenshot type="default">
+      <caption>A channel's chat, with the people in it</caption>
+      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/main-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A look-alike address shown as it really is before it opens</caption>
+      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/phishing.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Where a link leads and what VirusTotal says, without opening it</caption>
+      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/links.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>What waits for a moderator: AutoMod, unban requests and rewards</caption>
+      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/review.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The same in the dark</caption>
+      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/main-dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The terminal client</caption>
+      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/tui-dark.png</image>
+    </screenshot>
+  </screenshots>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#a8ddd7</color>
+    <color type="primary" scheme_preference="dark">#0e3f3b</color>
+  </branding>
+
+  <!-- Chat with strangers, which the client does not moderate itself. -->
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+  </content_rating>
+
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+
+  <keywords>
+    <keyword>Twitch</keyword>
+    <keyword>chat</keyword>
+    <keyword>stream</keyword>
+    <keyword>moderation</keyword>
+  </keywords>
+
+  <releases>
+    <release version="0.9.0" date="2026-10-29">
+      <description>
+        <p>The first public version: chat, moderation and the broadcaster's tools, in a window and in a terminal.</p>
+      </description>
+    </release>
+  </releases>
+</component>

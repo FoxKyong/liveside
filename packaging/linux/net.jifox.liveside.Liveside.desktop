@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Liveside
+GenericName=Twitch Chat
+Comment=Read and write Twitch chat
+Comment[cs]=Čtení a psaní chatu na Twitchi
+Exec=liveside-gui
+Icon=net.jifox.liveside.Liveside
+Terminal=false
+Categories=Network;Chat;InstantMessaging;
+Keywords=Twitch;chat;stream;
+StartupNotify=true

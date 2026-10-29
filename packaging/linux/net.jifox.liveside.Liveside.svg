@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- A placeholder until the project has an icon of its own. -->
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#1c7c74"/>
+  <path d="M30 34h68a8 8 0 0 1 8 8v36a8 8 0 0 1-8 8H58l-18 16v-16H30a8 8 0 0 1-8-8V42a8 8 0 0 1 8-8z" fill="#f6f5f4"/>
+  <rect x="36" y="48" width="48" height="7" rx="3.5" fill="#1c7c74"/>
+  <rect x="36" y="64" width="34" height="7" rx="3.5" fill="#1c7c74"/>
+  <circle cx="92" cy="40" r="10" fill="#e5484d" stroke="#f6f5f4" stroke-width="4"/>
+</svg>

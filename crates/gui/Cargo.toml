@@ -1,0 +1,25 @@
+[package]
+name = "liveside-gui"
+description = "Graphical frontend"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+liveside-proto.workspace = true
+liveside-client.workspace = true
+gtk = { version = "0.11.5", package = "gtk4", features = ["v4_10"] }
+glib = "0.22.10"
+tokio.workspace = true
+async-channel = "2.5.0"
+image = { version = "0.25.10", default-features = false, features = ["png", "gif", "webp"] }
+reqwest.workspace = true
+
+# The X server's clock, so that a click on a notification can hand the
+# window the keyboard on X11 (xfwm4 would not without it). Linux only: a
+# GTK built for the Mac has no X11 backend to link to.
+[target.'cfg(target_os = "linux")'.dependencies]
+gdk-x11 = { version = "0.11.5", package = "gdk4-x11" }

@@ -1,0 +1,17 @@
+# Build output
+/target/
+
+# Secrets: never commit tokens or keys (tokens belong in the system keyring)
+*.token
+*.key
+*.pem
+.env
+.env.*
+
+# Local runtime data when testing with a local config/data dir
+/local/
+
+# Editors
+*.swp
+.idea/
+.vscode/

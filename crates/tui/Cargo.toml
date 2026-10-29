@@ -1,0 +1,18 @@
+[package]
+name = "liveside-tui"
+description = "Terminal frontend"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+liveside-proto.workspace = true
+liveside-client.workspace = true
+tokio.workspace = true
+ratatui.workspace = true
+jiff.workspace = true
+unicode-width.workspace = true
+terminal-colorsaurus = "1.0.3"

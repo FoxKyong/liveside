@@ -1,0 +1,18 @@
+# The chat engine as a systemd user service, so chat keeps running while no
+# window is open; frontends attach with `liveside-gui --daemon` or
+# `liveside-tui --daemon`. Installed to /usr/lib/systemd/user/ by a package
+# (~/.config/systemd/user/ by hand), then:
+#   systemctl --user enable --now liveside-daemon.service
+# Log in once from a frontend (/login); the token is kept for later starts.
+
+[Unit]
+Description=Liveside, Twitch chat engine
+
+[Service]
+# The socket goes to $XDG_RUNTIME_DIR/liveside/daemon.sock, which the user
+# manager sets. SIGTERM, how systemd stops it, closes it cleanly.
+ExecStart=/usr/bin/liveside-daemon
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

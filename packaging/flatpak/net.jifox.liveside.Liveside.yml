@@ -1,0 +1,65 @@
+# Builds Liveside as a Flatpak from this working tree:
+#
+#   flatpak-builder --user --install --force-clean build-dir \
+#     packaging/flatpak/net.jifox.liveside.Liveside.yml
+#
+# cargo-sources.json lists every crate in Cargo.lock, since a Flatpak build
+# has no network. Make it again whenever Cargo.lock changes, with
+# flatpak-cargo-generator.py from flatpak/flatpak-builder-tools.
+id: net.jifox.liveside.Liveside
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: liveside-gui
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  - --talk-name=org.freedesktop.Notifications
+  # Streamlink, its player and the user's bots are programs of the user's
+  # own system, run there through flatpak-spawn --host: running them is
+  # what those features are (docs/architecture.md, *Packages*).
+  - --talk-name=org.freedesktop.Flatpak
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/liveside/cargo
+modules:
+  # The system's sound theme is outside the sandbox, so the sounds come
+  # from this copy. Its files are under GPL-2.0 and CC-BY(-SA), each named
+  # in CREDITS; docs/architecture.md lists it among the dependencies.
+  - name: sound-theme-freedesktop
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 -t /app/share/sounds/freedesktop/stereo stereo/*.oga
+      # flatpak-builder records each module's LICENSE or COPYING itself;
+      # this one's COPYING is empty, and CREDITS says what each sound is under.
+      - install -Dm644 -t /app/share/licenses/net.jifox.liveside.Liveside/sound-theme-freedesktop CREDITS
+    sources:
+      - type: archive
+        url: https://people.freedesktop.org/~mccann/dist/sound-theme-freedesktop-0.8.tar.bz2
+        sha256: cb518b20eef05ec2e82dda1fa89a292c1760dc023aba91b8aa69bafac85e8a14
+
+  - name: liveside
+    buildsystem: simple
+    build-commands:
+      - cargo --offline fetch --manifest-path Cargo.toml --verbose
+      - cargo --offline build --release --locked -p liveside-gui -p liveside-tui -p liveside-daemon
+      - install -Dm755 -t /app/bin target/release/liveside-gui target/release/liveside-tui target/release/liveside-daemon
+      - install -Dm644 packaging/linux/net.jifox.liveside.Liveside.desktop -t /app/share/applications
+      - install -Dm644 packaging/linux/net.jifox.liveside.Liveside.svg -t /app/share/icons/hicolor/scalable/apps
+      - install -Dm644 packaging/linux/net.jifox.liveside.Liveside.metainfo.xml -t /app/share/metainfo
+      - install -Dm644 -t /app/share/liveside/examples/bots examples/bots/*
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - target
+          - build-dir
+          - .flatpak-builder
+      - cargo-sources.json
