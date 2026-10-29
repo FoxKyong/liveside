@@ -808,9 +808,10 @@ pub fn build(
             glib::Propagation::Proceed
         }
     });
-    // Ctrl-Q quits, as in the terminal; GTK makes it Cmd-Q on a Mac, where
-    // every program answers that. It closes the main window, so what is
-    // kept on closing is kept here too.
+    // Ctrl-Q quits, as in the terminal, and on a Mac Cmd-Q too, which
+    // every program there answers. `<Primary>` alone did not do that:
+    // GTK 4.24 on macOS reads it as Ctrl (tried 2026-10-29). It closes the
+    // main window, so what is kept on closing is kept here too.
     let quit = gtk::gio::SimpleAction::new("quit", None);
     quit.connect_activate({
         let window = window.downgrade();
@@ -821,7 +822,12 @@ pub fn build(
         }
     });
     application.add_action(&quit);
-    application.set_accels_for_action("app.quit", &["<Primary>q"]);
+    let quit_keys: &[&str] = if cfg!(target_os = "macos") {
+        &["<Primary>q", "<Meta>q"]
+    } else {
+        &["<Primary>q"]
+    };
+    application.set_accels_for_action("app.quit", quit_keys);
     *poll_end.borrow_mut() = Some(ui.clone());
 
     ui.notifications.set_say({
