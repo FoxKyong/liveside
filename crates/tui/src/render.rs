@@ -72,16 +72,18 @@ pub fn draw(frame: &mut Frame, app: &App) -> Vec<LinkArea> {
     } else {
         draw_chat(frame, app, chat)
     };
-    draw_prompt(frame, app, prompt);
     // The settings screen covers the chat, as a dialog would in a GUI,
     // and the links under it with it.
+    let graph = app.graph.as_ref().and_then(|channel| app.index_of(channel));
     if app.settings.open {
         draw_settings(frame, app, frame.area());
         links.clear();
+    } else if graph.is_none() {
+        // The prompt is where the cursor goes; under a screen that covers
+        // it, the cursor stood on that screen's frame.
+        draw_prompt(frame, app, prompt);
     }
-    if let Some(channel) = &app.graph
-        && let Some(i) = app.index_of(channel)
-    {
+    if let Some(i) = graph {
         draw_graph(frame, app, &app.buffers[i], frame.area());
         links.clear();
     }
@@ -1342,7 +1344,10 @@ fn message_spans<'a>(
                 "[{}] ",
                 liveside_client::lang::suspicion(strings, suspicion)
             ),
-            Style::new().fg(Color::Red).bold(),
+            // The light red on a dark background: Terminal.app's darker
+            // palette made the plain one hard to read there. A light
+            // background gets the plain red back (`on_light`).
+            Style::new().fg(Color::LightRed).bold(),
         ));
     }
     // In a Shared Chat session the other channels' messages arrive here
@@ -1596,8 +1601,10 @@ fn fade_on(color: Color, light: bool) -> Color {
         g: (f32::from(rgb.g) * 0.55) as u8,
         b: (f32::from(rgb.b) * 0.55) as u8,
     };
-    // ... but not so far that it disappears into the background.
-    let Rgb { r, g, b } = lift_to(dimmed, 0.18);
+    // ... but not so far that it disappears into the background: most
+    // dark themes are grey rather than black (Ghostty's is about 0.17),
+    // and 0.18 left the time of a restored line a shade off it.
+    let Rgb { r, g, b } = lift_to(dimmed, 0.33);
     Color::Rgb(r, g, b)
 }
 
@@ -1608,6 +1615,7 @@ fn as_rgb(color: Color) -> Option<Rgb> {
         Color::Rgb(r, g, b) => (r, g, b),
         Color::Black => (0, 0, 0),
         Color::Red => (205, 49, 49),
+        Color::LightRed => (241, 76, 76),
         Color::Green => (13, 188, 121),
         Color::Yellow => (229, 229, 16),
         Color::Blue => (36, 114, 200),
@@ -1888,6 +1896,9 @@ mod tests {
         assert!(lum(fade_on(orange, true)) > lum(orange));
         // ... but never all the way to white.
         assert!(lum(fade_on(Color::Rgb(250, 250, 250), true)) <= 0.71);
+        // Nor, on a dark one, into a background that is grey rather
+        // than black: the time of a restored line stays readable.
+        assert!(lum(fade_on(Color::DarkGray, false)) >= 0.3);
     }
 
     #[test]
