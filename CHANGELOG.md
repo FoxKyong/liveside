@@ -4,6 +4,18 @@ What changed in each version of Liveside. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Fixed
+
+- Cmd-Q quits on a Mac.
+- The message line no longer tells someone logged in to log in.
+- The terminal: the time of restored lines stays readable on dark themes
+  that are grey rather than black, the ban-evader mark is readable in
+  Terminal.app, and the cursor no longer stands on the settings' frame.
+- `--check-config` says in plain English from which repeat a message is
+  marked.
+
 ## 0.9.0 — 2026-10-29
 
 The first public version: complete, but not yet tried by many people.
