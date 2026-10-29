@@ -608,10 +608,29 @@ is in, all machine translated. Left: volunteers to check them.
   Mac's own sounds in `/System/Library/Sounds` (there was no `pw-play`,
   `paplay` or sound theme, and the notice blamed only the theme). Not
   done: notifications (no D-Bus, and the notice shows its raw error);
-  files in `~/.config` and `~/.cache` rather than `~/Library`. A window attached to a daemon that stops now says so
-  (fixed after WSL, not in the build they had), greys its channels and
-  connects again when the daemon is back, joining what it still shows
-  (tried 2026-10-27 on labwc with the demo daemon, not on a Mac).
+  files in `~/.config` and `~/.cache` rather than `~/Library`. A window
+  attached to a daemon that stops now says so (fixed after WSL, not in
+  the build they had), greys its channels and connects again when the
+  daemon is back, joining what it still shows (tried 2026-10-27 on labwc
+  with the demo daemon, not on a Mac).
+  Tried again by them on 2026-10-29 (same Mac, `10a5a12`, 371 tests
+  passing), the second time with a Twitch login. Confirmed there: Cmd-F
+  and Cmd-R as well as Ctrl, the sounds through `afplay` (Ping for a
+  whisper, Hero for a stream going live), the window and the terminal
+  attached to the demo daemon logged in, the window greying and coming
+  back and the terminal ending with a word and status 1 when it went,
+  logging in and out of Twitch with the token kept at 0600, and the
+  terminal telling a light background from a dark one in Terminal.app
+  and Ghostty. Cmd-Q still did nothing: GTK 4.24 reads `<Primary>` as
+  Ctrl there, so the Mac now also gets `<Meta>q` (not yet tried on
+  one). Copying, pasting and selecting all in a text field go by Cmd
+  only, as GTK does on a Mac. Fixed from it: the hint of the message
+  line telling someone logged in to log in, the restored lines' time
+  fading into a grey dark background, the dark red of the ban-evader
+  mark in Terminal.app's darker palette, the terminal's cursor left on
+  the frame of the settings, and `--check-config` saying "from the 2.
+  time". GTK still warns about skipped frames on the Mac, without
+  anything to see.
 - Release build, `.desktop` file and icon; bot examples installed to
   `/usr/share/liveside/examples` and the docs saying so; the daemon as a
   systemd user service. The `.desktop` file and a placeholder icon are in
