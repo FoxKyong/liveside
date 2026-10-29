@@ -615,7 +615,7 @@ impl Config {
             match &self.repeated {
                 r if r.times == 0 => "not marked".to_owned(),
                 r => format!(
-                    "marked from the {}. time, {} % alike, within {} min{}",
+                    "marked once said {} times, {} % alike, within {} min{}",
                     r.times,
                     r.similarity,
                     r.minutes,
@@ -966,7 +966,7 @@ mod tests {
         assert!(
             Config::default()
                 .summary()
-                .contains("marked from the 2. time, 90 % alike, within 60 min")
+                .contains("marked once said 2 times, 90 % alike, within 60 min")
         );
     }
 
