@@ -29,8 +29,10 @@ pub fn close_on_escape(window: &gtk::Window) {
 /// above or below, as they do from every other field, rather than change
 /// the number, which a spin button does by itself: walking down the
 /// settings stopped at the first number and began to change it. The
-/// number changes with its − and + buttons, Page Up and Page Down, or by
-/// typing it.
+/// mouse wheel likewise scrolls the form rather than the number: a
+/// form scrolled with the wheel stopped as soon as a number came under
+/// the pointer, and the number began to run instead. The number changes
+/// with its − and + buttons, Page Up and Page Down, or by typing it.
 pub fn number(min: f64, max: f64, step: f64) -> gtk::SpinButton {
     let spin = gtk::SpinButton::with_range(min, max, step);
     let keys = gtk::EventControllerKey::new();
@@ -54,7 +56,40 @@ pub fn number(min: f64, max: f64, step: f64) -> gtk::SpinButton {
         }
     });
     spin.add_controller(keys);
+    let wheel = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
+    // Capture again, before the spin button takes the wheel for itself.
+    wheel.set_propagation_phase(gtk::PropagationPhase::Capture);
+    wheel.connect_scroll({
+        let spin = spin.downgrade();
+        move |wheel, _, dy| {
+            if let Some(spin) = spin.upgrade() {
+                scroll_around(&spin, wheel.unit(), dy);
+            }
+            glib::Propagation::Stop
+        }
+    });
+    spin.add_controller(wheel);
     spin
+}
+
+/// Scrolls whatever the widget sits in, as the wheel would have had the
+/// widget not been under the pointer: a notch by the same amount GTK
+/// scrolls by, a touchpad by the distance moved.
+fn scroll_around(widget: &impl IsA<gtk::Widget>, unit: gtk::gdk::ScrollUnit, dy: f64) {
+    let Some(scrolled) = widget
+        .ancestor(gtk::ScrolledWindow::static_type())
+        .and_then(|w| w.downcast::<gtk::ScrolledWindow>().ok())
+    else {
+        return;
+    };
+    let adjustment = scrolled.vadjustment();
+    let distance = match unit {
+        gtk::gdk::ScrollUnit::Wheel => dy * adjustment.page_size().powf(2.0 / 3.0),
+        _ => dy,
+    };
+    // The bottom never above the top: clamp panics on a range inside out.
+    let bottom = (adjustment.upper() - adjustment.page_size()).max(adjustment.lower());
+    adjustment.set_value((adjustment.value() + distance).clamp(adjustment.lower(), bottom));
 }
 
 /// Lets the arrow keys leave a field of several lines at its edges: Down
