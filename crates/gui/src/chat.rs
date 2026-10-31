@@ -176,18 +176,40 @@ impl ChatView {
         let following = Rc::new(Cell::new(true));
         let unseen = Rc::new(Cell::new(0usize));
         // Following is not a mode the user sets: it is simply whether they
-        // are at the bottom, which is where the newest line is.
+        // are at the bottom, which is where the newest line is. Only a move
+        // up leaves it, though: while GTK lays the text out the height
+        // grows in steps, and a move down to the bottom could be measured
+        // against a height that had grown again meanwhile, which read as
+        // the reader having scrolled away.
+        let last_value = Rc::new(Cell::new(0.0f64));
         scroll.vadjustment().connect_value_changed({
             let following = following.clone();
             let unseen = unseen.clone();
             let catch_up = catch_up.clone();
             move |adjustment| {
-                let at_bottom =
-                    adjustment.value() >= adjustment.upper() - adjustment.page_size() - 1.0;
-                following.set(at_bottom);
+                let value = adjustment.value();
+                let went_up = value < last_value.replace(value);
+                let at_bottom = value >= adjustment.upper() - adjustment.page_size() - 1.0;
                 if at_bottom {
+                    following.set(true);
                     unseen.set(0);
                     catch_up.set_visible(false);
+                } else if went_up {
+                    following.set(false);
+                }
+            }
+        });
+        // The height of the text changes after the line that changed it:
+        // once GTK has laid it out, and for a channel not on screen only
+        // when it is shown, since a hidden view is not laid out at all. A
+        // channel opened after its history came in stood somewhere in the
+        // middle of it. A reader at the newest line stays there whenever
+        // the height changes; one further up is left where they are.
+        scroll.vadjustment().connect_changed({
+            let following = following.clone();
+            move |adjustment| {
+                if following.get() {
+                    adjustment.set_value(adjustment.upper() - adjustment.page_size());
                 }
             }
         });

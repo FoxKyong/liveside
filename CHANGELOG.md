@@ -41,6 +41,9 @@ follow [Semantic Versioning](https://semver.org/).
   Terminal.app, and the cursor no longer stands on the settings' frame.
 - `--check-config` says in plain English from which repeat a message is
   marked.
+- A channel opened for the first time after start shows its newest
+  line; one whose history came in while another channel was on screen
+  stood somewhere in the middle of it.
 - Scrolling a form with the mouse wheel no longer stops at a number field
   and changes the number, as the arrow keys no longer did.
 
