@@ -190,9 +190,10 @@ mod tests {
             row[x] = symbol.to_owned();
             for k in 1..usize::from(width) {
                 if let Some(cell) = row.get_mut(x + k)
-                    && !cell.is_empty() {
-                        *cell = String::new();
-                    }
+                    && !cell.is_empty()
+                {
+                    *cell = String::new();
+                }
             }
             width
         }
