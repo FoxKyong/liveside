@@ -6,6 +6,15 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- Telling the chat about a link: **Check with VirusTotal and tell the
+  chat** in a message's menu, and **Tell the chat** in the window that
+  asks before opening a link, which says whether the address imitates a
+  name with letters from other alphabets. The message starts with "Link
+  check:", names the link and whose it was, never as a link itself, and
+  has a warning sign in front when something is wrong.
+
 ### Changed
 
 - The channels to open at start are no longer a setting of their own.

@@ -144,6 +144,10 @@ there yet.
     made for. It is off until you switch it on.
   - VirusTotal can be asked about a link you pick, with your own key.
     Nothing is checked or sent by itself.
+  - A moderator can warn the chat in one click: what VirusTotal says, or
+    whether the address imitates a name with look-alike letters, goes
+    out as "Link check: …", naming the link (not clickable) and whose it
+    was, with a warning sign in front when something is wrong.
 - **Your login is kept close.**
   - Liveside logs in with a code entered at twitch.tv/activate, so it
     never sees your password.

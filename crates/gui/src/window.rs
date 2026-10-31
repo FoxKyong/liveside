@@ -149,6 +149,13 @@ struct Ui {
     window: glib::WeakRef<gtk::ApplicationWindow>,
     /// The message the pointer was last over, for the menu.
     clicked: RefCell<Option<(MessageId, Login)>>,
+    /// The channel that message is in, so that telling the chat about a
+    /// link goes to the chat the link was in.
+    clicked_in: RefCell<Option<UserId>>,
+    /// Links VirusTotal was asked about to tell a chat: for each, the
+    /// chats to tell once it has answered, with the link as it was written
+    /// there and who wrote it.
+    telling: RefCell<HashMap<String, Vec<WaitingToTell>>>,
     /// The message being answered, shown above the input line.
     replying_to: RefCell<Option<(MessageId, Login)>>,
     reply_label: gtk::Label,
@@ -177,6 +184,20 @@ struct Ui {
     collected_window: RefCell<Option<Rc<crate::collected::CollectedWindow>>>,
     /// Desktop notifications and sounds.
     notifications: crate::notify::Notifications,
+}
+
+/// A chat to tell what VirusTotal says about a link: the channel, who
+/// wrote the link, and the link as it was written there.
+type WaitingToTell = (UserId, Login, String);
+
+impl Ui {
+    /// The message last clicked in a channel: the channel, and who wrote
+    /// the message.
+    fn message_clicked(&self) -> Option<(UserId, Login)> {
+        let (_, user) = self.clicked.borrow().clone()?;
+        let channel = self.clicked_in.borrow().clone()?;
+        Some((channel, user))
+    }
 }
 
 impl crate::moderation::Moderate for Ui {
@@ -211,7 +232,8 @@ impl crate::moderation::Moderate for Ui {
     }
 
     fn open_link(self: Rc<Self>, text: &str, url: &str) {
-        follow_link(&self, text, url);
+        let message = self.message_clicked();
+        follow_link(&self, text, url, message);
     }
 
     fn links_open(&self) -> bool {
@@ -252,6 +274,42 @@ impl crate::moderation::Moderate for Ui {
             url: url.to_owned(),
             scan,
         });
+    }
+
+    fn can_tell(&self) -> bool {
+        self.logged_in.get() && self.message_clicked().is_some()
+    }
+
+    fn check_and_tell(self: Rc<Self>, shown: &str, url: &str) {
+        let Some((channel, user)) = self.message_clicked() else {
+            return;
+        };
+        self.telling
+            .borrow_mut()
+            .entry(url.to_owned())
+            .or_default()
+            .push((channel, user, shown.to_owned()));
+        // An answer already here is told at once; otherwise VirusTotal is
+        // asked, and the chat is told when it answers.
+        let known = self
+            .link_reports
+            .borrow()
+            .get(&(
+                url.to_owned(),
+                liveside_proto::model::LinkSource::VirusTotal,
+            ))
+            .is_some_and(|state| {
+                matches!(
+                    state,
+                    liveside_proto::model::LinkState::Found { .. }
+                        | liveside_proto::model::LinkState::Unknown
+                )
+            });
+        if known {
+            tell_waiting(&self, url);
+        } else {
+            self.check_link(url, false);
+        }
     }
 
     fn copy_text(&self, text: &str) {
@@ -751,6 +809,8 @@ pub fn build(
         status_view: RefCell::new(status_view),
         window: window.downgrade(),
         clicked: RefCell::new(None),
+        clicked_in: RefCell::new(None),
+        telling: RefCell::new(HashMap::new()),
         replying_to: RefCell::new(None),
         reply_label: reply_label.clone(),
         scrollback,
@@ -768,7 +828,7 @@ pub fn build(
 
     *engine_for_review.borrow_mut() = Some(ui.clone());
     // Liveside's own notices name an address now and then: where to log in.
-    watch_links(&ui, &mut ui.status_view.borrow_mut());
+    watch_links(&ui, &mut ui.status_view.borrow_mut(), None);
     // Closing the main window closes the program, the channels' windows
     // with it; they stay in the layout, at the size they are now, and
     // open again at the next start. Destroyed, not closed: closing would
@@ -2172,6 +2232,9 @@ fn apply_event(ui: &Rc<Ui>, event: Event) {
             }
             for view in ui.whispers.borrow().values() {
                 view.show_report(&report.url, strings);
+            }
+            if report.source == liveside_proto::model::LinkSource::VirusTotal {
+                tell_waiting(ui, &report.url);
             }
         }
         // A whisper: into the thread with that person, which is made
@@ -3921,7 +3984,7 @@ fn ensure_whisper(ui: &Rc<Ui>, user: &liveside_proto::model::User) {
         return;
     }
     let mut view = ChatView::new(ui.scrollback, ui.emotes.clone(), ui.palette.get());
-    watch_links(ui, &mut view);
+    watch_links(ui, &mut view, None);
     // A whisper is not moderated, so its menu has what a link and a
     // selection offer and nothing else — and never the view's own Cut,
     // Paste and Undo, which can do nothing in text that cannot be edited.
@@ -3939,6 +4002,7 @@ fn ensure_whisper(ui: &Rc<Ui>, user: &liveside_proto::model::User) {
                 .iter_at_location(bx, by)
                 .and_then(|iter| crate::chat::link_at(&iter));
             *ui.clicked.borrow_mut() = None;
+            *ui.clicked_in.borrow_mut() = None;
             let Some(window) = ui.window.upgrade() else {
                 return;
             };
@@ -4052,7 +4116,7 @@ fn ensure_channel(ui: &Rc<Ui>, channel: &liveside_proto::model::Channel) {
         return;
     }
     let mut view = ChatView::new(ui.scrollback, ui.emotes.clone(), ui.palette.get());
-    watch_links(ui, &mut view);
+    watch_links(ui, &mut view, Some(channel.id.clone()));
     // The menu acts on the message under the pointer, so the view notes
     // which one that is before GTK opens its own menu.
     let click = gtk::GestureClick::new();
@@ -4082,6 +4146,7 @@ fn ensure_channel(ui: &Rc<Ui>, channel: &liveside_proto::model::Channel) {
                 found.is_some() && selection_is_within_one_message(&ui, &id, &text_view);
             let has_selection = text_view.buffer().selection_bounds().is_some();
             *ui.clicked.borrow_mut() = found.clone();
+            *ui.clicked_in.borrow_mut() = Some(id.clone());
             let link = text_view
                 .iter_at_location(bx, by)
                 .and_then(|iter| crate::chat::link_at(&iter));
@@ -4128,6 +4193,7 @@ fn ensure_channel(ui: &Rc<Ui>, channel: &liveside_proto::model::Channel) {
                     .and_then(|chat| chat.message_at(&iter))
             });
             *ui.clicked.borrow_mut() = found;
+            *ui.clicked_in.borrow_mut() = Some(id.clone());
         }
     });
     view.view().add_controller(pick);
@@ -4638,8 +4704,10 @@ fn reply_by_key(ui: &Rc<Ui>) {
 }
 
 /// Makes the links in a chat view answer a click, as the settings say,
-/// and shows a hand over them while they can be clicked.
-fn watch_links(ui: &Rc<Ui>, view: &mut ChatView) {
+/// and shows a hand over them while they can be clicked. `channel` is the
+/// channel the view shows, if it shows one: a link from there can be
+/// reported to its chat.
+fn watch_links(ui: &Rc<Ui>, view: &mut ChatView, channel: Option<UserId>) {
     view.set_links(ui.link_mode() != LinkMode::Off);
     view.set_reports(ui.link_reports.clone());
     let text_view = view.view().clone();
@@ -4667,7 +4735,18 @@ fn watch_links(ui: &Rc<Ui>, view: &mut ChatView) {
                 return;
             }
             if let Some((text, url)) = at(x, y) {
-                follow_link(&ui, &text, &url);
+                let (bx, by) = text_view.window_to_buffer_coords(
+                    gtk::TextWindowType::Widget,
+                    x as i32,
+                    y as i32,
+                );
+                let message = channel.as_ref().and_then(|channel| {
+                    let iter = text_view.iter_at_location(bx, by)?;
+                    let views = ui.views.borrow();
+                    let (_, user) = views.get(channel)?.message_at(&iter)?;
+                    Some((channel.clone(), user))
+                });
+                follow_link(&ui, &text, &url, message);
             }
         }
     });
@@ -4687,7 +4766,9 @@ fn watch_links(ui: &Rc<Ui>, view: &mut ChatView) {
 
 /// Opens a link from chat the way the settings say: after asking, at once,
 /// or not at all.
-fn follow_link(ui: &Rc<Ui>, text: &str, url: &str) {
+/// `message` is the channel the link was in and who wrote it, when it was
+/// in a channel, for telling that chat about it.
+fn follow_link(ui: &Rc<Ui>, text: &str, url: &str, message: Option<(UserId, Login)>) {
     let Some(window) = ui.window.upgrade() else {
         return;
     };
@@ -4713,7 +4794,91 @@ fn follow_link(ui: &Rc<Ui>, text: &str, url: &str) {
     match ui.link_mode() {
         LinkMode::Off => {}
         LinkMode::Open => launch(),
-        LinkMode::Ask => crate::link::confirm(&window, text, url, strings, launch),
+        LinkMode::Ask => {
+            // Telling the chat what the address is made of needs an
+            // account to write with.
+            let tell = message
+                .filter(|_| ui.logged_in.get())
+                .map(|(channel, user)| {
+                    let ui = ui.clone();
+                    let shown = text.to_owned();
+                    let url = url.to_owned();
+                    Box::new(move || {
+                        let strings = ui.language.get().strings();
+                        let about = liveside_client::links::About {
+                            shown: &shown,
+                            user: user.as_str(),
+                        };
+                        tell_chat(
+                            &ui,
+                            channel.clone(),
+                            liveside_client::links::letters_for_chat(strings, about, &url),
+                        );
+                    }) as Box<dyn Fn()>
+                });
+            crate::link::confirm(&window, text, url, strings, launch, tell)
+        }
+    }
+}
+
+/// Says something about a link in a chat. Not as a reply: a reply reads
+/// as a word to one person, which the rest of the chat passes over, so
+/// the message names the link and its author itself.
+fn tell_chat(ui: &Rc<Ui>, channel: UserId, text: String) {
+    ui.engine.send(Command::SendMessage {
+        channel,
+        text,
+        reply_to: None,
+    });
+}
+
+/// Tells the chats waiting for VirusTotal's answer about `url`, once
+/// there is one; a check that cannot be answered is said here instead.
+fn tell_waiting(ui: &Rc<Ui>, url: &str) {
+    let strings = ui.language.get().strings();
+    let state = ui
+        .link_reports
+        .borrow()
+        .get(&(
+            url.to_owned(),
+            liveside_proto::model::LinkSource::VirusTotal,
+        ))
+        .cloned();
+    use liveside_client::links::{About, ForChat};
+    // Whether there is an answer yet does not depend on whose link it is.
+    let ready = liveside_client::links::virustotal_for_chat(
+        strings,
+        About {
+            shown: url,
+            user: "",
+        },
+        url,
+        state.as_ref(),
+    );
+    if ready == ForChat::Wait {
+        return;
+    }
+    let Some(waiting) = ui.telling.borrow_mut().remove(url) else {
+        return;
+    };
+    for (channel, user, shown) in waiting {
+        let about = About {
+            shown: &shown,
+            user: user.as_str(),
+        };
+        match liveside_client::links::virustotal_for_chat(strings, about, url, state.as_ref()) {
+            ForChat::Say(text) => tell_chat(ui, channel, text),
+            ForChat::Cannot(reason) => {
+                say(
+                    ui,
+                    NoticeLevel::Warning,
+                    fill(strings.link_tell_failed, &[("reason", &reason)]),
+                );
+                // Said once for all of them.
+                break;
+            }
+            ForChat::Wait => {}
+        }
     }
 }
 

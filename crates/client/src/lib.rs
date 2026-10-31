@@ -126,6 +126,7 @@ pub mod input;
 /// depending on the engine crate directly.
 pub mod lang;
 pub mod layout;
+pub mod links;
 pub mod notify;
 pub mod settings;
 pub mod streamlink;

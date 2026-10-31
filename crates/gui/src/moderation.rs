@@ -35,6 +35,13 @@ pub trait Moderate {
     fn link_unknown(&self, url: &str) -> bool;
     /// Asks VirusTotal about a link; `scan` sends it to be scanned.
     fn check_link(&self, url: &str, scan: bool);
+    /// Whether the chat of the message under the pointer can be told
+    /// about its link: there is such a message, and an account to write
+    /// with.
+    fn can_tell(&self) -> bool;
+    /// Asks VirusTotal about a link, written as `shown`, if it has not
+    /// answered already, and tells the chat what it says.
+    fn check_and_tell(self: Rc<Self>, shown: &str, url: &str);
     /// Whether links may be followed to say where they lead.
     fn follows_links(&self) -> bool;
     /// Follows a link's redirects from this machine.
@@ -103,6 +110,7 @@ pub fn message_menu<W: Moderate + 'static>(
         if ui.links_open() {
             let ui = ui.clone();
             let url = url.clone();
+            let shown = shown.clone();
             item(
                 text.link_menu_open,
                 Box::new(move || ui.clone().open_link(&shown, &url)),
@@ -130,6 +138,17 @@ pub fn message_menu<W: Moderate + 'static>(
                     text.link_menu_check
                 },
                 Box::new(move || ui.check_link(&url, scan)),
+            );
+        }
+        // For a moderator who wants the chat warned at once: the answer
+        // goes to the chat, naming the link and whose it was.
+        if ui.virustotal() && what.message.is_some() && ui.can_tell() {
+            let ui = ui.clone();
+            let url = url.clone();
+            let shown = shown.clone();
+            item(
+                text.link_menu_check_tell,
+                Box::new(move || ui.clone().check_and_tell(&shown, &url)),
             );
         }
         let ui = ui.clone();

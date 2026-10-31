@@ -51,6 +51,21 @@ up and what was hidden; **Join a channel…** asks for any other. Right-click
 a channel to open it in a window of its own or beside the chat, clear it,
 or leave it. A message's menu can ignore its author.
 
+A link in a message can be checked with VirusTotal (with your own key,
+switched on in the settings), and **Check with VirusTotal and tell the
+chat** sends the answer to the chat once VirusTotal has given it. The
+window that asks before opening a link has **Tell the chat** too, which
+says whether the address imitates a name with letters from other
+alphabets and where it really goes. Either message starts with "Link
+check:", names the link and who wrote it, and has a warning sign in
+front when something is wrong:
+
+    ⚠ Link check: https://pаypal[.]com/login from @someone – the address imitates
+    a known name with letters from other alphabets and really goes to xn--pypal-4ve[.]com
+
+The host is written with its dots in brackets, so that the message is
+not a link itself, and the message is in the language of the interface.
+
 | Key | Does |
 |---|---|
 | Tab, Shift-Tab | complete a name, emote, command or `:emoji` shortcode; the one before |
