@@ -3010,12 +3010,14 @@ impl Twitch {
                 format!("Not in channel {channel}"),
             ));
         };
-        if let Some(helix) = &self.helix {
-            for id in &joined.subscriptions {
-                // Leaving locally matters more than tidying up at Twitch.
-                let _ = helix.unsubscribe(id).await;
-            }
-        }
+        // Leaving locally matters more than tidying up at Twitch, so the
+        // channel is gone from the frontends first: a broadcaster's own
+        // channel has a score of subscriptions, which took ten seconds
+        // and more one after another, with the channel still listed.
+        self.emit(Event::ChannelParted {
+            channel: channel.clone(),
+        })
+        .await;
         if let Some(irc) = &self.irc_out {
             let _ = irc
                 .send(liveside_twitch::irc::Command::Part(
@@ -3023,10 +3025,17 @@ impl Twitch {
                 ))
                 .await;
         }
-        self.emit(Event::ChannelParted {
-            channel: channel.clone(),
-        })
-        .await;
+        // All at once, and waited for: joining the channel again right
+        // after must not meet subscriptions Twitch still has. A failure is
+        // ignored, as one Twitch has already forgotten is what we wanted.
+        if let Some(helix) = &self.helix {
+            let mut dropping = tokio::task::JoinSet::new();
+            for id in joined.subscriptions {
+                let helix = helix.clone();
+                dropping.spawn(async move { helix.unsubscribe(&id).await });
+            }
+            while dropping.join_next().await.is_some() {}
+        }
         Ok(())
     }
 

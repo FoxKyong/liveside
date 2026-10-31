@@ -19,6 +19,9 @@ follow [Semantic Versioning](https://semver.org/).
 - Channels opened again at start show the turning wheel while they are
   joined, like channels joined by hand; before, the window stood without
   them until each was ready.
+- Leaving a channel takes it off the list at once. Twitch is told to
+  stop sending its events all at once rather than one after another,
+  which took ten seconds and more in a channel of one's own.
 
 - Cmd-Q quits on a Mac.
 - The message line no longer tells someone logged in to log in.
