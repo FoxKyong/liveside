@@ -18,6 +18,9 @@ follow [Semantic Versioning](https://semver.org/).
   than the line and stand apart from each other, and messages have a
   little space between them, while the lines of one wrapped message
   stay together.
+- In the dark theme, flat buttons (such as the ones under the channel
+  list) now light up clearly under the pointer; GTK's own dark theme
+  changed them so little that they hardly looked clickable.
 
 ## 0.10.0 — 2026-10-31
 

@@ -82,7 +82,48 @@ pub fn apply(theme: Theme) -> &'static Palette {
         }
         Theme::System => settings.as_ref().is_some_and(follows_dark_desktop),
     };
+    flat_buttons_on_dark(dark);
     if dark { &DARK } else { &LIGHT }
+}
+
+/// Makes a flat button visibly light up under the pointer on a dark
+/// background. GTK's dark theme raises it from grey 53 to 55, where the
+/// buttons under the channel list hardly show they can be clicked; the
+/// light theme goes from 246 to 218, about what this gives in the dark.
+/// Only while dark, so the light theme stays GTK's own.
+fn flat_buttons_on_dark(dark: bool) {
+    thread_local! {
+        static PROVIDER: std::cell::RefCell<Option<gtk::CssProvider>> =
+            const { std::cell::RefCell::new(None) };
+    }
+    let Some(display) = gtk::gdk::Display::default() else {
+        return;
+    };
+    PROVIDER.with(|provider| {
+        let mut provider = provider.borrow_mut();
+        match (dark, provider.as_ref()) {
+            (true, None) => {
+                let css = gtk::CssProvider::new();
+                css.load_from_data(
+                    "button.flat:hover { background-image: none; \
+                         background-color: alpha(currentColor, 0.14); }\n\
+                     button.flat:active, button.flat:checked { background-image: none; \
+                         background-color: alpha(currentColor, 0.22); }",
+                );
+                gtk::style_context_add_provider_for_display(
+                    &display,
+                    &css,
+                    gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+                );
+                *provider = Some(css);
+            }
+            (false, Some(css)) => {
+                gtk::style_context_remove_provider_for_display(&display, css);
+                *provider = None;
+            }
+            _ => {}
+        }
+    });
 }
 
 /// The colours for text on a background of one's choosing: the dark set
