@@ -217,14 +217,6 @@ impl Settings {
         let config = &self.config;
         self.rows = vec![
             Row {
-                key: "channels",
-                section: Section::General,
-                label: text.row_channels,
-                help: text.row_channels_help,
-                value: Value::Words(config.channels.clone()),
-                restart: true,
-            },
-            Row {
                 key: "reopen_channels",
                 section: Section::General,
                 label: text.row_reopen,
@@ -734,7 +726,6 @@ impl Settings {
     fn collect(&mut self) {
         for row in &self.rows {
             match (row.key, &row.value) {
-                ("channels", Value::Words(words)) => self.config.channels = words.clone(),
                 ("highlight", Value::Words(words)) => self.config.highlight.words = words.clone(),
                 ("highlight_rules", Value::Rules(rules)) => {
                     self.config.highlight.rules = rules.clone()
@@ -1176,8 +1167,7 @@ impl Settings {
         // everything else is read when the client starts. Saying "restart"
         // when nothing needs one sends people to close a window for
         // nothing.
-        let needs_restart = before.channels != self.config.channels
-            || before.chat != self.config.chat
+        let needs_restart = before.chat != self.config.chat
             || before.security.virustotal != self.config.security.virustotal
             || before.security.resolver != self.config.security.resolver;
         // In the language just chosen, not the one in force a moment ago.
@@ -1784,23 +1774,23 @@ mod tests {
     #[test]
     fn word_lists_are_typed_as_one_line() {
         let mut settings = settings();
-        settings.selected = 0; // Channels
+        select(&mut settings, "highlight");
         settings.activate();
         assert_eq!(settings.editing.as_deref(), Some(""));
-        settings.editing = Some("#orbitcast, tidewave , ,".into());
+        settings.editing = Some("giveaway, raffle , ,".into());
         settings.finish_editing();
-        // The # is optional, empty entries are dropped.
+        // Empty entries are dropped.
         assert_eq!(
-            value(&settings, "channels"),
-            Value::Words(vec!["orbitcast".into(), "tidewave".into()])
+            value(&settings, "highlight"),
+            Value::Words(vec!["giveaway".into(), "raffle".into()])
         );
     }
 
     #[test]
     fn saving_writes_a_file_that_reads_back() {
         let mut settings = settings();
-        settings.selected = 0;
-        settings.editing = Some("orbitcast".into());
+        select(&mut settings, "highlight");
+        settings.editing = Some("giveaway".into());
         settings.finish_editing();
         settings.save();
         assert!(
@@ -1813,7 +1803,7 @@ mod tests {
         );
 
         let written = Config::load(settings.path()).unwrap();
-        assert_eq!(written.channels, ["orbitcast"]);
+        assert_eq!(written.highlight.words, ["giveaway"]);
         std::fs::remove_file(settings.path()).unwrap();
     }
 }

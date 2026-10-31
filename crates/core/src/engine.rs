@@ -46,9 +46,8 @@ pub struct EngineConfig {
     /// Where the open channels are written down, to be joined again at the
     /// next start (`crate::open_channels`); `None` when that is off.
     pub open_channels: Option<std::path::PathBuf>,
-    /// The channels from the settings file. With `open_channels` they are
-    /// opened first, ahead of the rest of the list, which is the order a
-    /// frontend lists them in; otherwise a frontend joins them itself.
+    /// The channels an older settings file names. They start the list of
+    /// open channels when there is none yet, and are ignored otherwise.
     pub channels: Vec<String>,
 }
 
@@ -223,6 +222,7 @@ pub fn start(
         history: History::new(config.history.clone()),
         history_broken: false,
         open_channels_broken: false,
+        joining_now: Vec::new(),
         backend_flows: Vec::new(),
         backend_name: String::new(),
         config,
@@ -293,6 +293,9 @@ struct Engine {
     history_broken: bool,
     /// Likewise for the list of open channels.
     open_channels_broken: bool,
+    /// Channels asked for and not joined yet, for a frontend that attaches
+    /// while they are on their way.
+    joining_now: Vec<liveside_proto::Login>,
     /// What the backend told us it does with the user's data.
     backend_flows: Vec<DataFlow>,
     /// What the backend calls itself.
@@ -337,6 +340,9 @@ struct Pending {
     /// The channel this was asked to join, if it was: a frontend showing
     /// the name while it waits has to be told when it will never come.
     joining: Option<liveside_proto::Login>,
+    /// Every channel this joins, which are no longer on their way once it
+    /// is done, whether they were joined or not.
+    joins: Vec<liveside_proto::Login>,
 }
 
 enum Flow {
@@ -410,6 +416,7 @@ impl Engine {
                     Some(BackendMessage::Done { token, result }) => self.done(token, result),
                     None => {
                         backend_open = false;
+                        self.joining_now.clear();
                         for (_, pending) in self.pending.drain() {
                             let result = Err(backend_gone());
                             let _ = pending.reply.send(Completion { result, seq: self.seq });
@@ -454,6 +461,7 @@ impl Engine {
                 highlighted: self.highlighted.iter().cloned().collect(),
                 ignored: self.ignored.iter().cloned().collect(),
                 bots: self.bots.statuses(),
+                joining: self.joining_now.clone(),
             },
             events: self.broadcast.subscribe(),
         }
@@ -792,13 +800,18 @@ impl Engine {
     fn forward(&mut self, requests: Vec<BackendRequest>, reply: oneshot::Sender<Completion>) {
         let token = self.next_token;
         self.next_token += 1;
-        let joining = requests.iter().find_map(|request| match request {
-            BackendRequest::Join { channel } => Some(channel.clone()),
-            _ => None,
-        });
+        let joins: Vec<liveside_proto::Login> = requests
+            .iter()
+            .filter_map(|request| match request {
+                BackendRequest::Join { channel } => Some(channel.clone()),
+                _ => None,
+            })
+            .collect();
+        let joining = joins.first().cloned();
         let remaining = requests.len();
         for request in requests {
             if self.backend.send(Request { token, request }).is_err() {
+                self.joining_now.retain(|login| !joins.contains(login));
                 self.reply(reply, Err(backend_gone()));
                 return;
             }
@@ -812,6 +825,7 @@ impl Engine {
             remaining,
             error: None,
             joining,
+            joins,
         };
         self.pending.insert(token, pending);
     }
@@ -834,6 +848,8 @@ impl Engine {
         }
         if pending.remaining == 0 {
             let pending = self.pending.remove(&token).expect("present above");
+            self.joining_now
+                .retain(|login| !pending.joins.contains(login));
             if let (Some(login), Some(_)) = (&pending.joining, &pending.error) {
                 self.publish(Event::ChannelJoinFailed {
                     login: login.clone(),
@@ -934,6 +950,7 @@ impl Engine {
             Event::LoggedOut => self.account = None,
             Event::Connection { state } => self.connection = state.clone(),
             Event::ChannelJoined { channel, modes } => {
+                self.joining_now.retain(|login| *login != channel.login);
                 let known = match self.channel_mut(&channel.id) {
                     Some(c) => {
                         c.channel = channel.clone();
@@ -1543,17 +1560,16 @@ impl Engine {
         let Some(path) = &self.config.open_channels else {
             return;
         };
-        // The settings file's channels first, as a frontend lists them, so
-        // the list is written down again in the order it is shown in.
-        let mut logins = self.config.channels.clone();
-        for login in crate::open_channels::load(path) {
-            if !logins.contains(&login) {
-                logins.push(login);
-            }
-        }
-        // One at a time: a name that cannot be joined, a typo in the
-        // settings file, must not keep the others closed. The frontend
-        // that joins it as well says what is wrong with it.
+        // Before the list was kept, the settings file named the channels
+        // to join. Those start the list when there is none yet, and are
+        // not read again once there is one: a channel left must stay gone.
+        let logins = if path.exists() {
+            crate::open_channels::load(path)
+        } else {
+            self.config.channels.clone()
+        };
+        // One at a time: a name that cannot be joined must not keep the
+        // others closed. Its failure is published like any other.
         for login in logins {
             if let Ok(requests) = self.joining(std::slice::from_ref(&login)) {
                 let (reply, _) = oneshot::channel();
@@ -2095,6 +2111,9 @@ impl Engine {
                 self.publish(Event::ChannelJoining {
                     login: channel.clone(),
                 });
+                if !self.joining_now.contains(&channel) {
+                    self.joining_now.push(channel.clone());
+                }
                 BackendRequest::Join { channel }
             })
             .collect())
@@ -2201,6 +2220,7 @@ mod tests {
             history: History::new(crate::history::HistoryConfig::disabled()),
             history_broken: false,
             open_channels_broken: false,
+            joining_now: Vec::new(),
             backend_flows: Vec::new(),
             backend_name: "test".to_owned(),
             config: EngineConfig::default(),

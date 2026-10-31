@@ -2870,8 +2870,8 @@ impl Twitch {
 
     /// Joins the channels asked for that we are not in. Run once the
     /// session is up, which is also the moment a login finishes: the
-    /// channels from the settings file were asked for at startup, when
-    /// there was no account to join them with.
+    /// channels opened again at startup were asked for before there was
+    /// an account to join them with.
     async fn join_what_is_wanted(&mut self) {
         let wanted: Vec<(Option<u64>, Login)> = self
             .wanted
@@ -2885,7 +2885,7 @@ impl Twitch {
     /// Joins several channels, asking Twitch about all of them at once.
     /// A channel that was asked for by a command carries that command's
     /// token, which is answered when the channel is in or has failed;
-    /// the ones from the settings file carry none and only say so in the
+    /// the ones joined after a login carry none and only say so in the
     /// status buffer when they fail.
     async fn join_many(&mut self, wanted: Vec<(Option<u64>, Login)>) {
         let joined: Vec<Login> = self

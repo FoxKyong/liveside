@@ -204,6 +204,12 @@ pub struct Snapshot {
     /// The user's own bots, and whether each runs.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub bots: Vec<crate::model::BotStatus>,
+    /// Channels asked for and not joined yet, in the order they were
+    /// asked for. The engine starts joining the channels of the last run
+    /// before any frontend attaches, so their `ChannelJoining` went to
+    /// nobody; a frontend shows these as it shows that event.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub joining: Vec<crate::Login>,
 }
 
 /// What has been said to and from one person.

@@ -1817,6 +1817,7 @@ mod tests {
                 highlighted: Vec::new(),
                 ignored: Vec::new(),
                 bots: Vec::new(),
+                joining: Vec::new(),
             },
         });
         app.active = 1;
@@ -2364,9 +2365,9 @@ mod tests {
                 .position(|cell| cell == value)
                 .unwrap_or_else(|| panic!("no {value} beside {label}: {row:?}"))
         };
-        let channels = value_at("채", "(");
-        assert_eq!(value_at("사", "a"), channels, "user list at {width}");
-        assert_eq!(value_at("외", "켬"), channels, "emotes at {width}");
+        let reopen = value_at("마", "켬");
+        assert_eq!(value_at("사", "a"), reopen, "user list at {width}");
+        assert_eq!(value_at("외", "켬"), reopen, "emotes at {width}");
     }
 
     #[test]

@@ -239,6 +239,7 @@ fn server_messages_roundtrip() {
                         args: vec![("code".into(), "1".into())],
                     }],
                 }],
+                joining: vec!["tidewave".into()],
                 connection: ConnectionState::Reconnecting {
                     attempt: 2,
                     reason: "keepalive timeout".into(),

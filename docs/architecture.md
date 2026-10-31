@@ -69,8 +69,8 @@ This is the part that makes the daemon possible, so it is strict:
    channels; daemon mode sends the same values over a socket.
 3. Every event carries a monotonically increasing sequence number. A frontend
    that attaches (or reattaches) first gets a **snapshot** (open channels,
-   recent scrollback, account state) tagged with a sequence number, then the
-   live events after it.
+   channels still being joined, recent scrollback, account state) tagged
+   with a sequence number, then the live events after it.
 4. Every command carries a request id and gets exactly one `response` with
    that id (no `error` field means success), sent only to the frontend that
    asked. **The response comes after every event the command caused**, so

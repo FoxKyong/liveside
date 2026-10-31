@@ -312,7 +312,6 @@ pub fn build(
     set_direction(text);
     let scrollback = config.chat.scrollback;
     let animated = config.ui.animated_emotes;
-    let channels_to_join: Vec<String> = config.channels.clone();
     let mut config = config;
     if demo {
         // Invented chat has no business in the local log, as in the other
@@ -1639,11 +1638,6 @@ pub fn build(
     if demo {
         ui.engine.send(Command::Login);
     }
-    for channel in channels_to_join {
-        ui.engine.send(Command::Join {
-            channel: channel.into(),
-        });
-    }
 
     window.present();
 }
@@ -1773,6 +1767,11 @@ fn apply(ui: &Rc<Ui>, message: ServerMessage) {
                 }
                 show_live(ui, &id);
                 show_poll(ui, &id);
+            }
+            // Below the joined ones, in the order they were asked for, as
+            // they would have come had the window been there to see it.
+            for login in &snapshot.joining {
+                show_joining(ui, login);
             }
             *ui.collected.borrow_mut() = liveside_client::collected::Collected::from_snapshot(
                 snapshot.highlighted,

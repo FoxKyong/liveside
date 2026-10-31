@@ -31,7 +31,7 @@ Options:
   --socket PATH      Connect to a daemon on this socket
                      (default: $XDG_RUNTIME_DIR/liveside/daemon.sock)
   --channel NAMES    Join these channels on start (comma separated;
-                     replaces the channels from the settings file)
+                     instead of the ones open at the end of the last run)
   --config PATH      Settings file (default: $XDG_CONFIG_HOME/liveside/config.toml)
   --check-config     Check that file and print the settings it gives
   --no-history       Keep no local chat log, and restore none on join
@@ -302,17 +302,9 @@ async fn run(
     let mut app = App::default();
     app.terminal_light = terminal_light;
     let mut keys = key_reader();
-    // The channels to join come from the file unless the command line
-    // names some; the settings screen edits the same file.
-    let channels: Vec<Login> = if args.channels.is_empty() {
-        config
-            .channels
-            .iter()
-            .map(|name| name.as_str().into())
-            .collect()
-    } else {
-        args.channels.clone()
-    };
+    // The command line's channels, if it names any. Otherwise the engine
+    // opens again those that were open at the end of the last run.
+    let channels: Vec<Login> = args.channels.clone();
     // The language the file asks for, or what the environment says.
     app.language = liveside_client::lang::Language::parse(&config.ui.language)
         .unwrap_or_else(liveside_client::lang::Language::detect);

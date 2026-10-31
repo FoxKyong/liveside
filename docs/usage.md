@@ -20,10 +20,13 @@ Chat you see is written to a local log, and a channel you rejoin comes
 back with its recent lines. Nothing is fetched from anywhere for this, so
 a channel you join for the first time starts empty.
 
-The channels open when Liveside ends open again at the next start, after
-those the settings name (`channels`), which keep their order at the top of
-the list; `reopen_channels = false` in `[chat]` stops that. The terminal
-started with `--channel` opens only the channels it names.
+The channels open when Liveside ends open again at the next start, in the
+same order. Joining a channel (**Join a channel…** or `/join`) is what
+keeps it, and leaving it (**Leave the channel** in its menu, or `/part`)
+is what drops it; `reopen_channels = false` in `[chat]` stops that. The
+terminal started with `--channel` opens only the channels it names, and
+leaves the list as it was. A `channels = [...]` line from an older
+settings file starts the list if there is none yet, and is not read after.
 
 Typed commands (`/join`, `/part`, `/timeout`, `/ban`, …) are read by the
 engine, so both frontends have the same ones: `/moderated` for the
@@ -100,8 +103,6 @@ to save them. They live in `~/.config/liveside/config.toml`, which you can also
 edit by hand:
 
 ```toml
-channels = ["orbitcast", "tidewave"]
-
 [ui]
 language = "auto"         # or a code: en, cs; machine translated: es, ru, uk, eo,
                           # el, ko, ja, zh-Hans, zh-Hant, th, vi, ar. auto follows LANG

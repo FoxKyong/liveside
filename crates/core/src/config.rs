@@ -33,7 +33,10 @@ pub fn default_path() -> PathBuf {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
-    /// Channels joined at start, without the `#`.
+    /// Channels joined at start, from before the open channels were
+    /// remembered. Still read, so an older file keeps working and its
+    /// channels start the remembered list, but never written back.
+    #[serde(skip_serializing)]
     pub channels: Vec<String>,
     pub chat: ChatConfig,
     pub highlight: HighlightConfig,
@@ -546,24 +549,30 @@ impl Config {
     /// The settings as they will be used, for `--check-config`. Mentions
     /// where things are kept, since that is what people want to know.
     pub fn summary(&self) -> String {
-        let channels = if self.channels.is_empty() {
-            "(none; join with /join)".to_owned()
-        } else {
-            self.channels.join(", ")
-        };
         let words = if self.highlight.words.is_empty() {
             "(only your own name)".to_owned()
         } else {
             self.highlight.words.join(", ")
         };
-        let reopen = if self.chat.reopen_channels {
-            format!(
-                "on, kept in {}",
-                crate::open_channels::default_path(false).display()
-            )
+        let path = crate::open_channels::default_path(false);
+        let mut reopen = if self.chat.reopen_channels {
+            format!("those open at the end, kept in {}", path.display())
         } else {
-            "off".to_owned()
+            "none (reopen_channels is off)".to_owned()
         };
+        // The key from before the list was kept, said so that nobody
+        // wonders why editing it does nothing.
+        if !self.channels.is_empty() {
+            let used = if self.chat.reopen_channels && !path.exists() {
+                "will start that list"
+            } else {
+                "not used any more"
+            };
+            reopen.push_str(&format!(
+                "\n                    channels = {} in the file: {used}",
+                self.channels.join(", ")
+            ));
+        }
         let log = if self.chat.history {
             format!(
                 "on, in {} ({} lines restored on join)",
@@ -578,8 +587,7 @@ impl Config {
             n => n.to_string(),
         };
         format!(
-            "Channels on start:  {channels}\n\
-             Reopen last ones:   {reopen}\n\
+            "Channels on start:  {reopen}\n\
              Highlight words:    {words}\n\
              Highlight rules:    {}\n\
              Ignore rules:       {} (hidden, counted every 30 s)\n\
@@ -999,6 +1007,18 @@ mod tests {
     }
 
     #[test]
+    fn the_old_channels_key_is_read_but_not_written_back() {
+        let path = temp_path("old-channels");
+        std::fs::write(&path, "channels = [\"orbitcast\"]\n").unwrap();
+        let config = Config::load(&path).unwrap();
+        assert_eq!(config.channels, ["orbitcast"]);
+        config.save(&path).unwrap();
+        let written = std::fs::read_to_string(&path).unwrap();
+        std::fs::remove_file(&path).unwrap();
+        assert!(!written.contains("orbitcast"), "{written}");
+    }
+
+    #[test]
     fn a_stream_chat_background_that_is_no_colour_stops_the_file() {
         let path = temp_path("stream-chat");
         std::fs::write(&path, "[stream_chat]\nbackground = \"green\"\n").unwrap();
@@ -1011,7 +1031,8 @@ mod tests {
     fn saves_and_reads_back() {
         let path = temp_path("roundtrip");
         let config = Config {
-            channels: vec!["orbitcast".into(), "tidewave".into()],
+            // Read from an older file, but never written back.
+            channels: Vec::new(),
             chat: ChatConfig {
                 history: false,
                 scrollback: 500,

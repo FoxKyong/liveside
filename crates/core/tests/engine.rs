@@ -498,25 +498,50 @@ async fn open_channels_are_opened_again_at_the_next_start() {
     wait_for(&engine, |s| logins(s) == ["orbitcast"]).await;
     drop(engine);
 
-    // Second run: what was open at the end comes back by itself, after
-    // the settings file's channels, in the order a frontend lists them.
+    // Second run: what was open at the end comes back by itself. A
+    // frontend attaching at once is told it is on its way, since the
+    // engine's ChannelJoining went out before anybody listened. The old
+    // settings key is not read once the list exists: a channel left must
+    // not come back from there.
     let engine = start(
         EngineConfig {
-            channels: vec!["brightmaple".to_owned(), "orbitcast".to_owned()],
+            channels: vec!["brightmaple".to_owned()],
             ..config()
+        },
+        QUIET,
+    );
+    let first = engine.attach().await.unwrap().snapshot;
+    let mut seen: Vec<String> = first
+        .joining
+        .iter()
+        .map(|l| l.as_str().to_owned())
+        .collect();
+    seen.extend(logins(&first));
+    assert_eq!(seen, ["orbitcast"]);
+    let snapshot = wait_for(&engine, |s| s.channels.len() == 1 && s.joining.is_empty()).await;
+    assert_eq!(logins(&snapshot), ["orbitcast"]);
+    drop(engine);
+
+    // Without a list yet, the old key's channels start it.
+    let fresh = dir.join("fresh.json");
+    let engine = start(
+        EngineConfig {
+            open_channels: Some(fresh.clone()),
+            channels: vec!["brightmaple".to_owned(), "orbitcast".to_owned()],
+            ..EngineConfig::default()
         },
         QUIET,
     );
     let snapshot = wait_for(&engine, |s| s.channels.len() == 2).await;
     assert_eq!(logins(&snapshot), ["brightmaple", "orbitcast"]);
     assert_eq!(
-        liveside_core::open_channels::load(&path),
+        liveside_core::open_channels::load(&fresh),
         ["brightmaple", "orbitcast"]
     );
     drop(engine);
     let engine = start(config(), QUIET);
-    let snapshot = wait_for(&engine, |s| s.channels.len() == 2).await;
-    assert_eq!(logins(&snapshot), ["brightmaple", "orbitcast"]);
+    let snapshot = wait_for(&engine, |s| s.channels.len() == 1).await;
+    assert_eq!(logins(&snapshot), ["orbitcast"]);
     let flow = snapshot
         .data_flows
         .iter()

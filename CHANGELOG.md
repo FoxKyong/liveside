@@ -6,7 +6,19 @@ follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Changed
+
+- The channels to open at start are no longer a setting of their own.
+  Liveside already opened again the channels open at the end, so joining
+  a channel (**Join a channel…**, `/join`) is what keeps it, and leaving
+  it (the channel's menu, `/part`) is what drops it. A `channels` line
+  from an older settings file starts that list if there is none yet.
+
 ### Fixed
+
+- Channels opened again at start show the turning wheel while they are
+  joined, like channels joined by hand; before, the window stood without
+  them until each was ready.
 
 - Cmd-Q quits on a Mac.
 - The message line no longer tells someone logged in to log in.

@@ -298,8 +298,6 @@ catalogue! {
     settings_saved_live,
     settings_save_failed,
     settings_none,
-    row_channels,
-    row_channels_help,
     row_reopen,
     row_reopen_help,
     row_highlight,

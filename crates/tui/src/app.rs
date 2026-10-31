@@ -596,6 +596,11 @@ impl App {
             buffer.lines = channel.lines.into_iter().collect();
             self.buffers.push(buffer);
         }
+        // Channels on their way, joined by the engine before this attached:
+        // tabs for them as for a join seen happening.
+        for login in snapshot.joining {
+            self.event(Event::ChannelJoining { login });
+        }
         // The lists that were open come back, filled from the snapshot.
         for kind in open_lists {
             self.open_collected(kind);
@@ -3279,6 +3284,7 @@ mod tests {
             highlighted: Vec::new(),
             ignored: Vec::new(),
             bots: Vec::new(),
+            joining: Vec::new(),
         };
         app.apply(ServerMessage::Snapshot {
             seq: liveside_proto::Seq(9),
