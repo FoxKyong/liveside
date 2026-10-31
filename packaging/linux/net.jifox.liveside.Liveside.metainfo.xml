@@ -45,35 +45,35 @@
   </provides>
 
   <url type="homepage">https://liveside.jifox.net</url>
-  <url type="vcs-browser">https://github.com/foxkyong/liveside</url>
-  <url type="bugtracker">https://github.com/foxkyong/liveside/issues</url>
+  <url type="vcs-browser">https://github.com/FoxKyong/liveside</url>
+  <url type="bugtracker">https://github.com/FoxKyong/liveside/issues</url>
 
   <!-- From the demo, with made-up channels and people. Pinned to the
        release's tag, so what a version shows does not change. -->
   <screenshots>
     <screenshot type="default">
       <caption>A channel's chat, with the people in it</caption>
-      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/main-light.png</image>
+      <image>https://raw.githubusercontent.com/FoxKyong/liveside/v0.10.0/docs/images/main-light.png</image>
     </screenshot>
     <screenshot>
       <caption>A look-alike address shown as it really is before it opens</caption>
-      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/phishing.png</image>
+      <image>https://raw.githubusercontent.com/FoxKyong/liveside/v0.10.0/docs/images/phishing.png</image>
     </screenshot>
     <screenshot>
       <caption>Where a link leads and what VirusTotal says, without opening it</caption>
-      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/links.png</image>
+      <image>https://raw.githubusercontent.com/FoxKyong/liveside/v0.10.0/docs/images/links.png</image>
     </screenshot>
     <screenshot>
       <caption>What waits for a moderator: AutoMod, unban requests and rewards</caption>
-      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/review.png</image>
+      <image>https://raw.githubusercontent.com/FoxKyong/liveside/v0.10.0/docs/images/review.png</image>
     </screenshot>
     <screenshot>
       <caption>The same in the dark</caption>
-      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/main-dark.png</image>
+      <image>https://raw.githubusercontent.com/FoxKyong/liveside/v0.10.0/docs/images/main-dark.png</image>
     </screenshot>
     <screenshot>
       <caption>The terminal client</caption>
-      <image>https://raw.githubusercontent.com/foxkyong/liveside/v0.9.0/docs/images/tui-dark.png</image>
+      <image>https://raw.githubusercontent.com/FoxKyong/liveside/v0.10.0/docs/images/tui-dark.png</image>
     </screenshot>
   </screenshots>
 
@@ -100,6 +100,11 @@
   </keywords>
 
   <releases>
+    <release version="0.10.0" date="2026-10-31">
+      <description>
+        <p>A list of emotes to pick from beside the input line, telling the chat what was found out about a link, and fixes: leaving a channel at once, emoji no longer shifting lines in the terminal, and more.</p>
+      </description>
+    </release>
     <release version="0.9.0" date="2026-10-29">
       <description>
         <p>The first public version: chat, moderation and the broadcaster's tools, in a window and in a terminal.</p>

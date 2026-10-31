@@ -171,12 +171,12 @@ there yet.
 
 On Arch Linux, install [`liveside`](https://aur.archlinux.org/packages/liveside)
 from the AUR; its PKGBUILD is kept in
-[foxkyong/aur-liveside](https://github.com/foxkyong/aur-liveside). The
+[FoxKyong/aur-liveside](https://github.com/FoxKyong/aur-liveside). The
 package also installs the launcher entry, the icon, the daemon's user
 service and the example bot.
 
 Elsewhere, take the Flatpak bundle from the
-[latest release](https://github.com/foxkyong/liveside/releases/latest)
+[latest release](https://github.com/FoxKyong/liveside/releases/latest)
 and install it with `flatpak install --user liveside-*.flatpak`; it runs
 on the GNOME 51 runtime, which Flatpak fetches from Flathub. The Flatpak
 can also be built from `packaging/flatpak/` (how is at the top of its

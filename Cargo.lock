@@ -1892,7 +1892,7 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
 name = "liveside-client"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "emojis",
  "jiff",
@@ -1907,7 +1907,7 @@ dependencies = [
 
 [[package]]
 name = "liveside-core"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "liveside-proto",
  "liveside-twitch",
@@ -1922,7 +1922,7 @@ dependencies = [
 
 [[package]]
 name = "liveside-daemon"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "liveside-client",
  "liveside-core",
@@ -1932,7 +1932,7 @@ dependencies = [
 
 [[package]]
 name = "liveside-gui"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "async-channel",
  "gdk4-x11",
@@ -1947,7 +1947,7 @@ dependencies = [
 
 [[package]]
 name = "liveside-proto"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1955,7 +1955,7 @@ dependencies = [
 
 [[package]]
 name = "liveside-tui"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "jiff",
  "liveside-client",
@@ -1968,7 +1968,7 @@ dependencies = [
 
 [[package]]
 name = "liveside-twitch"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "futures-util",
  "liveside-proto",

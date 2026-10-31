@@ -4,7 +4,7 @@ What changed in each version of Liveside. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 0.10.0 — 2026-10-31
 
 ### Added
 
@@ -50,7 +50,6 @@ follow [Semantic Versioning](https://semver.org/).
 - Leaving a channel takes it off the list at once. Twitch is told to
   stop sending its events all at once rather than one after another,
   which took ten seconds and more in a channel of one's own.
-
 - Cmd-Q quits on a Mac.
 - The message line no longer tells someone logged in to log in.
 - The terminal: the time of restored lines stays readable on dark themes
