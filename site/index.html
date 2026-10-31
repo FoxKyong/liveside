@@ -114,12 +114,15 @@ section h2 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 12px; letter-spa
 section > .wrap > p.intro { color: var(--muted); max-width: 44em; margin: 0 0 28px; }
 h3 { font-size: 1.1rem; margin: 0 0 6px; }
 
-.split { display: grid; gap: 28px; align-items: start; }
-@media (min-width: 860px) { .split { grid-template-columns: 1fr 1fr; gap: 40px; } }
+/* minmax(0, …): a column may be narrower than its longest line, so a
+   long command in a <pre> scrolls inside its box instead of widening the
+   page past a phone's screen. */
+.split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (min-width: 860px) { .split { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; } }
 
-.cards { display: grid; gap: 16px; }
-@media (min-width: 640px) { .cards { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 960px) { .cards.three { grid-template-columns: repeat(3, 1fr); } }
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 640px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 960px) { .cards.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .card {
   background: var(--surface); border: 1px solid var(--line);
   border-radius: 10px; padding: 18px 20px;
