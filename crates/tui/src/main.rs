@@ -7,6 +7,7 @@
 mod app;
 mod hyperlink;
 mod render;
+mod wide;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -229,7 +230,14 @@ async fn main() -> ExitCode {
         restore();
         previous_hook(info);
     }));
-    let mut terminal = ratatui::init();
+    let mut terminal = match screen() {
+        Ok(terminal) => terminal,
+        Err(e) => {
+            restore();
+            eprintln!("liveside-tui: cannot use the terminal: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
     // Whether the terminal has the focus decides what is worth a
     // notification. A terminal that cannot say ignores the request.
     let _ = ratatui::crossterm::execute!(
@@ -256,6 +264,24 @@ async fn main() -> ExitCode {
     }
 }
 
+/// The terminal as drawn on: what `ratatui::init` gives, with the backend
+/// wrapped so emoji do not shift their rows (see `wide`).
+type Screen =
+    ratatui::Terminal<wide::WideSafe<ratatui::backend::CrosstermBackend<std::io::Stdout>>>;
+
+/// Takes the screen over, like `ratatui::init`, whose panic hook is not
+/// needed: `main` sets its own.
+fn screen() -> std::io::Result<Screen> {
+    ratatui::crossterm::terminal::enable_raw_mode()?;
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::terminal::EnterAlternateScreen
+    )?;
+    ratatui::Terminal::new(wide::WideSafe::new(
+        ratatui::backend::CrosstermBackend::new(std::io::stdout()),
+    ))
+}
+
 /// Gives the terminal back as it was: focus reports left on would type
 /// `^[[I` into the shell every time its window is clicked.
 fn restore() {
@@ -269,7 +295,7 @@ fn restore() {
 /// Draws the screen and, when links are to be opened from the terminal,
 /// makes them clickable.
 fn draw(
-    terminal: &mut ratatui::DefaultTerminal,
+    terminal: &mut Screen,
     app: &App,
     links_drawn: &mut liveside_client::config::LinkMode,
 ) -> Result<(), String> {
@@ -292,7 +318,7 @@ fn draw(
 }
 
 async fn run(
-    terminal: &mut ratatui::DefaultTerminal,
+    terminal: &mut Screen,
     mut connection: Connection,
     args: &Args,
     config: liveside_client::Config,

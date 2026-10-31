@@ -39,6 +39,11 @@ follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- In the terminal, a line with an emoji such as ❤️ or ⬇️ no longer
+  moves one column to the right after the emoji, leaving a gap and
+  losing its end, when it is drawn again (scrolling, searching, picking
+  a message). It happened in every terminal, from a fault in ratatui
+  that is fixed there but not yet released.
 - Channels opened again at start show the turning wheel while they are
   joined, like channels joined by hand; before, the window stood without
   them until each was ready.
