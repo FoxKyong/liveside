@@ -1436,6 +1436,7 @@ fn fragment_spans<'a>(
                         Verdict::Waiting => Style::new().fg(Color::DarkGray),
                         Verdict::Clean => Style::new().fg(Color::Green),
                         Verdict::Dangerous => Style::new().fg(Color::Red).bold(),
+                        Verdict::Doubtful => Style::new().fg(Color::Yellow),
                         Verdict::Unknown => Style::new().fg(Color::Yellow),
                         Verdict::Info => Style::new().fg(Color::Cyan),
                     };
@@ -1713,7 +1714,7 @@ mod tests {
         );
         assert_eq!(
             text(&reports),
-            "see http://github.com/ [VirusTotal: 2 malicious, 0 suspicious of 93 · \
+            "see http://github.com/ [VirusTotal: 2 malicious, 0 suspicious of 93, often a false alarm · \
              ends at https://github.com/] now"
         );
         // And where it leads, after VirusTotal's verdict.

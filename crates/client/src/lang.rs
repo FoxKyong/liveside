@@ -470,6 +470,8 @@ catalogue! {
     chat_link_plain,
     chat_vt_clean,
     chat_vt_dangerous,
+    chat_vt_warn,
+    chat_vt_doubtful,
     chat_vt_ends,
     chat_vt_unknown,
     link_open_failed,
@@ -488,6 +490,7 @@ catalogue! {
     vt_unknown,
     vt_clean,
     vt_dangerous,
+    vt_doubtful,
     vt_ends,
     link_menu_check,
     link_menu_follow,
@@ -958,7 +961,10 @@ pub enum Verdict {
     Waiting,
     /// No engine found anything.
     Clean,
-    /// Some engine calls it malicious or suspicious.
+    /// An engine or two call it malicious or suspicious, which is as
+    /// often a false alarm as not.
+    Doubtful,
+    /// Enough engines call it malicious or suspicious to take seriously.
     Dangerous,
     /// No report, or no answer at all.
     Unknown,
@@ -1013,23 +1019,20 @@ pub fn link_report(
             ..
         } => {
             let engines = engines.to_string();
-            let (mut said, verdict) = if malicious + suspicious == 0 {
-                (
+            let counts = [
+                ("malicious", malicious.to_string()),
+                ("suspicious", suspicious.to_string()),
+                ("engines", engines.clone()),
+            ];
+            let counts: Vec<(&str, &str)> = counts.iter().map(|(k, v)| (*k, v.as_str())).collect();
+            use crate::links::Findings;
+            let (mut said, verdict) = match crate::links::findings(*malicious, *suspicious) {
+                Findings::None => (
                     fill(strings.vt_clean, &[("engines", &engines)]),
                     Verdict::Clean,
-                )
-            } else {
-                (
-                    fill(
-                        strings.vt_dangerous,
-                        &[
-                            ("malicious", &malicious.to_string()),
-                            ("suspicious", &suspicious.to_string()),
-                            ("engines", &engines),
-                        ],
-                    ),
-                    Verdict::Dangerous,
-                )
+                ),
+                Findings::Few => (fill(strings.vt_doubtful, &counts), Verdict::Doubtful),
+                Findings::Dangerous => (fill(strings.vt_dangerous, &counts), Verdict::Dangerous),
             };
             // Where it really goes is the other half of the answer, and
             // the address is never shortened.

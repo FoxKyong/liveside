@@ -116,6 +116,7 @@ impl ChatView {
             "vt_waiting",
             "vt_clean",
             "vt_dangerous",
+            "vt_doubtful",
             "vt_unknown",
             "vt_info",
         ] {
@@ -303,6 +304,7 @@ impl ChatView {
                 Verdict::Waiting => "vt_waiting",
                 Verdict::Clean => "vt_clean",
                 Verdict::Dangerous => "vt_dangerous",
+                Verdict::Doubtful => "vt_doubtful",
                 Verdict::Unknown => "vt_unknown",
                 Verdict::Info => "vt_info",
             };
@@ -1146,6 +1148,7 @@ fn paint(table: &gtk::TextTagTable, palette: &Palette) {
     set("vt_waiting", palette.faded);
     set("vt_clean", palette.badge);
     set("vt_unknown", palette.warning);
+    set("vt_doubtful", palette.warning);
     set("vt_info", palette.event);
     set("vt_dangerous", palette.error);
     if let Some(tag) = table.lookup("vt_dangerous") {

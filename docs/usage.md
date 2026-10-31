@@ -65,6 +65,9 @@ front when something is wrong:
 
 The host is written with its dots in brackets, so that the message is
 not a link itself, and the message is in the language of the interface.
+VirusTotal's answer counts as a warning from three of its engines up;
+one or two alone flag even well-known sites now and then, so they are
+reported as a likely false alarm, in the chat and after the link.
 
 | Key | Does |
 |---|---|

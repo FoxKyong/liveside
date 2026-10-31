@@ -13,7 +13,9 @@ follow [Semantic Versioning](https://semver.org/).
   asks before opening a link, which says whether the address imitates a
   name with letters from other alphabets. The message starts with "Link
   check:", names the link and whose it was, never as a link itself, and
-  has a warning sign in front when something is wrong.
+  has a warning sign in front when something is wrong. One or two of
+  VirusTotal's engines alone, which flag even google.com now and then,
+  are reported as a likely false alarm rather than as a warning.
 
 ### Changed
 

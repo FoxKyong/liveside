@@ -34,6 +34,42 @@ pub fn looks_foreign(url: &str) -> bool {
     host(url).split('.').any(|label| label.starts_with("xn--"))
 }
 
+/// From how many of VirusTotal's engines finding something a link is
+/// called dangerous. One or two engines alone flag well-known sites now
+/// and then (google.com by one of 93, measured), and a warning given for
+/// every such false alarm teaches the chat to pass over warnings.
+pub const DANGEROUS_FROM: u32 = 3;
+
+/// How much VirusTotal's engines found in a link.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Findings {
+    /// Nothing.
+    None,
+    /// An engine or two, which is as often a false alarm as not.
+    Few,
+    /// Enough engines to take it seriously.
+    Dangerous,
+}
+
+/// What `malicious` and `suspicious` findings out of a report come to.
+pub fn findings(malicious: u32, suspicious: u32) -> Findings {
+    match malicious + suspicious {
+        0 => Findings::None,
+        n if n < DANGEROUS_FROM => Findings::Few,
+        _ => Findings::Dangerous,
+    }
+}
+
+/// Whether two hosts are the same site: `www.` in front of one of them is
+/// where a site sends its bare name, not somewhere else.
+fn same_site(a: &str, b: &str) -> bool {
+    let bare = |host: &str| {
+        let host = host.to_ascii_lowercase();
+        host.strip_prefix("www.").map(str::to_owned).unwrap_or(host)
+    };
+    bare(a) == bare(b)
+}
+
 /// A host as it is written into chat: with its dots in brackets, so that
 /// nobody's client turns it into a link to click, and a channel that
 /// does not allow links still takes the message.
@@ -139,27 +175,41 @@ pub fn virustotal_for_chat(
             ..
         }) => {
             let engines = engines.to_string();
-            let dangerous = malicious + suspicious > 0;
-            let mut verdict = if dangerous {
-                fill(
+            let found = findings(*malicious, *suspicious);
+            let mut verdict = match found {
+                Findings::None => fill(strings.chat_vt_clean, &[("engines", &engines)]),
+                Findings::Few => fill(
+                    strings.chat_vt_doubtful,
+                    &[
+                        ("count", &(malicious + suspicious).to_string()),
+                        ("engines", &engines),
+                    ],
+                ),
+                Findings::Dangerous => fill(
                     strings.chat_vt_dangerous,
                     &[
                         ("malicious", &malicious.to_string()),
                         ("suspicious", &suspicious.to_string()),
                         ("engines", &engines),
                     ],
-                )
-            } else {
-                fill(strings.chat_vt_clean, &[("engines", &engines)])
+                ),
             };
             // Where it ends is the other half of the answer, when it is
-            // another host: from http to https is no news.
-            if let Some(end) = final_url.as_deref().filter(|end| host(end) != host(url)) {
+            // another site: from http to https, or to www., is no news.
+            if let Some(end) = final_url
+                .as_deref()
+                .filter(|end| !same_site(host(end), host(url)))
+            {
                 verdict.push_str(" · ");
                 verdict.push_str(&fill(
                     strings.chat_vt_ends,
                     &[("host", &defanged(host(end)))],
                 ));
+            }
+            // The advice comes last, after everything it is about.
+            let dangerous = found == Findings::Dangerous;
+            if dangerous {
+                verdict = fill(strings.chat_vt_warn, &[("verdict", &verdict)]);
             }
             ForChat::Say(message(strings, about, dangerous, &verdict))
         }
@@ -224,6 +274,37 @@ mod tests {
         let said = letters_for_chat(strings, about, &long);
         assert!(said.chars().count() < 500, "{}", said.chars().count());
         assert!(said.contains('…'), "{said}");
+    }
+
+    #[test]
+    fn an_engine_or_two_is_no_warning() {
+        let strings = Language::English.strings();
+        let url = "https://google.com";
+        let about = About {
+            shown: url,
+            user: "someone",
+        };
+        let report = |malicious| LinkState::Found {
+            malicious,
+            suspicious: 0,
+            engines: 93,
+            analysed: None,
+            final_url: Some("https://www.google.com/".into()),
+            redirects: Vec::new(),
+        };
+        let ForChat::Say(said) = virustotal_for_chat(strings, about, url, Some(&report(1))) else {
+            panic!("a report is told");
+        };
+        assert!(!said.starts_with('⚠'), "{said}");
+        assert!(said.contains("false alarm"), "{said}");
+        // To www. is the same site, and not worth a word.
+        assert!(!said.contains("ends at"), "{said}");
+        let ForChat::Say(said) = virustotal_for_chat(strings, about, url, Some(&report(3))) else {
+            panic!("a report is told");
+        };
+        assert!(said.starts_with("⚠ "), "{said}");
+        // The advice is the last thing said.
+        assert!(said.ends_with("Better not open it."), "{said}");
     }
 
     #[test]
