@@ -226,6 +226,12 @@ pub enum Command {
     /// [`crate::Event::ModeratedChannels`].
     ShowModeratedChannels,
 
+    /// The emotes one can write in a channel, to pick from, answered with
+    /// [`crate::Event::EmoteList`].
+    ListEmotes {
+        channel: UserId,
+    },
+
     /// The highlight words and the highlight, ignore and filter rules,
     /// as just saved in the settings, with the address book their
     /// categories come from: they apply to what arrives from now on.

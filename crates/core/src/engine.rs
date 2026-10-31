@@ -724,6 +724,7 @@ impl Engine {
                 vec![BackendRequest::SendWhisper { user, text }]
             }
             Command::ShowModeratedChannels => vec![BackendRequest::ShowModeratedChannels],
+            Command::ListEmotes { channel } => vec![BackendRequest::ListEmotes { channel }],
             Command::ShowFollowedChannels => vec![BackendRequest::ShowFollowedChannels],
             Command::CreateClip { channel } => vec![BackendRequest::CreateClip { channel }],
             Command::ShowRewards { channel } => vec![BackendRequest::ShowRewards { channel }],
@@ -1056,6 +1057,7 @@ impl Engine {
             | Event::People { .. }
             | Event::BlockedTerms { .. }
             | Event::ModeratedChannels { .. }
+            | Event::EmoteList { .. }
             | Event::FollowedChannels { .. }
             | Event::FollowedStreams { .. }
             | Event::Rewards { .. }

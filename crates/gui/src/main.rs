@@ -9,6 +9,7 @@ mod channel;
 mod chat;
 mod collected;
 mod dialog;
+mod emote_picker;
 mod emotes;
 mod engine;
 mod followed;

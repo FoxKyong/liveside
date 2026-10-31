@@ -36,6 +36,11 @@ impl EmoteSet {
         self.by_code.is_empty()
     }
 
+    /// Every emote in the set, in no particular order.
+    pub fn iter(&self) -> impl Iterator<Item = &EmoteRef> {
+        self.by_code.values()
+    }
+
     /// Adds emotes that this set does not have yet, so the caller decides
     /// precedence by the order it merges.
     pub fn merge(&mut self, other: EmoteSet) {

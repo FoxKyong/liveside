@@ -172,6 +172,11 @@ pub enum BackendRequest {
     },
     /// The channels this account moderates.
     ShowModeratedChannels,
+    /// The emotes one can write in this channel, answered with
+    /// `Event::EmoteList`.
+    ListEmotes {
+        channel: UserId,
+    },
     /// The channels this account follows, live ones with their streams.
     ShowFollowedChannels,
     /// Whisper somebody, by login.

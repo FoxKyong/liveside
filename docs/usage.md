@@ -69,9 +69,20 @@ VirusTotal's answer counts as a warning from three of its engines up;
 one or two alone flag even well-known sites now and then, so they are
 reported as a likely false alarm, in the chat and after the link.
 
+The smiley beside the input line opens the emotes you can write in the
+channel on screen, as pictures: the ones you used last, the channel's
+own, other channels' you have as a subscriber or a follower, Twitch's,
+and the channel's and everyone's 7TV, BetterTTV and FrankerFaceZ ones.
+Type to search them by their code; a click or Enter writes the code
+into the line and leaves the list open for the next, and 😀 at the top
+has Unicode emoji. Which Twitch emotes are yours to use is asked of
+Twitch with the `user:read:emotes` permission: a login made before the
+list existed lacks it, and until you log in again the list shows every
+emote of the channel instead, usable or not, and says so.
+
 | Key | Does |
 |---|---|
-| Tab, Shift-Tab | complete a name, emote, command or `:emoji` shortcode; the one before |
+| Tab, Shift-Tab | complete a name, emote (also from that list), command or `:emoji` shortcode; the one before |
 | Up, Down | lines sent before |
 | Ctrl-R | answer the newest message; again, the one before it (Esc drops it) |
 | Ctrl-F | search the chat on screen: Enter or F3 further back, Shift-Enter forward, Esc closes |

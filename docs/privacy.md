@@ -74,6 +74,7 @@ itself sends.
 | Chat log | `$XDG_DATA_HOME/liveside/history/<channel>.jsonl`, mode 0600 in a 0700 directory | Restores a channel's recent lines when you join it again | `--no-history` |
 | Open channels | `$XDG_STATE_HOME/liveside/channels.json`, mode 0600 | Opens again at the next start the channels that were open at the end | `reopen_channels = false` in `[chat]` |
 | Window layout | `$XDG_STATE_HOME/liveside/layout.json` (graphical client only) | Puts docked channels and channels in windows of their own back where they were | Delete the file |
+| Recent emotes | `$XDG_STATE_HOME/liveside/recent-emotes.json` (graphical client only) | The emotes you picked or sent last, at the top of the list to pick from | Delete the file |
 | Emote pictures | `$XDG_CACHE_HOME/liveside/emotes` (graphical client only) | So an emote is fetched once, not on every message | Delete the directory; `--no-third-party-emotes` stops all but Twitch's own |
 
 The chat log is written only for channels you have joined, only while the

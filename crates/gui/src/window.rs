@@ -82,6 +82,14 @@ struct Ui {
     /// Which channels were docked and how wide, kept across restarts.
     layout: RefCell<liveside_client::layout::Layout>,
     layout_path: PathBuf,
+    /// The list of emotes to pick from, beside the main input line.
+    emote_picker: RefCell<Option<Rc<crate::emote_picker::Picker>>>,
+    /// The emotes each channel offers, as last asked for, and when.
+    emote_lists: RefCell<HashMap<UserId, EmoteList>>,
+    /// The emotes picked or sent last, newest first, and where they are
+    /// kept.
+    recent_emotes: RefCell<Vec<liveside_proto::model::EmoteRef>>,
+    recent_emotes_path: PathBuf,
     /// Stream Chat windows, by channel.
     stream_chats: RefCell<HashMap<UserId, Rc<crate::stream_chat::StreamChat>>>,
     /// What the main window says in place of a popped-out channel, and
@@ -378,6 +386,7 @@ pub fn build(
     }
     let engine = Engine::start(config, socket, demo);
     let layout_path = liveside_client::layout::default_path(demo);
+    let recent_emotes_path = liveside_client::recent_emotes::default_path(demo);
 
     let window = gtk::ApplicationWindow::builder()
         .application(application)
@@ -673,7 +682,12 @@ pub fn build(
     middle.append(poll_bar.root());
     middle.append(prediction_bar.root());
     middle.append(&reply_label);
-    middle.append(&entry);
+    // The line to type into, and the list of emotes beside it, which is
+    // put in once there is a window state for it to work with.
+    let input_row = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    entry.set_hexpand(true);
+    input_row.append(&entry);
+    middle.append(&input_row);
     middle.set_margin_start(6);
     middle.set_margin_end(6);
     middle.set_margin_top(6);
@@ -782,6 +796,10 @@ pub fn build(
         docked: RefCell::new(Vec::new()),
         layout: RefCell::new(liveside_client::layout::Layout::load(&layout_path)),
         layout_path,
+        emote_picker: RefCell::new(None),
+        emote_lists: RefCell::new(HashMap::new()),
+        recent_emotes: RefCell::new(liveside_client::recent_emotes::load(&recent_emotes_path)),
+        recent_emotes_path,
         stream_chats: RefCell::new(HashMap::new()),
         popped_label: popped_label.clone(),
         popped_show: popped_show.clone(),
@@ -924,6 +942,30 @@ pub fn build(
         }
     });
 
+    let picker = crate::emote_picker::Picker::new(
+        &entry,
+        ui.emotes.clone(),
+        text,
+        {
+            let ui = Rc::downgrade(&ui);
+            move || {
+                if let Some(ui) = ui.upgrade() {
+                    open_emotes(&ui);
+                }
+            }
+        },
+        {
+            let ui = Rc::downgrade(&ui);
+            move |emote| {
+                if let Some(ui) = ui.upgrade() {
+                    remember_emotes(&ui, std::slice::from_ref(emote));
+                }
+            }
+        },
+    );
+    input_row.append(&picker.button);
+    *ui.emote_picker.borrow_mut() = Some(picker);
+
     // Typing a line sends it to the channel on screen.
     entry.connect_activate({
         let ui = ui.clone();
@@ -932,6 +974,7 @@ pub fn build(
             if text.trim().is_empty() {
                 return;
             }
+            remember_sent_emotes(&ui, &text);
             ui.history.borrow_mut().remember(&text);
             ui.completion.borrow_mut().stop();
             entry.set_text("");
@@ -2221,6 +2264,35 @@ fn apply_event(ui: &Rc<Ui>, event: Event) {
             ui.shield.borrow_mut().insert(channel, on);
             refresh_room_menu(ui);
         }
+        // The emotes to pick from, kept for the next time the list opens,
+        // and put in now when it is open on that channel.
+        Event::EmoteList {
+            channel,
+            groups,
+            complete,
+        } => {
+            ui.emote_lists.borrow_mut().insert(
+                channel.clone(),
+                EmoteList {
+                    asked: std::time::Instant::now(),
+                    groups,
+                    complete,
+                },
+            );
+            let open = ui
+                .emote_picker
+                .borrow()
+                .as_ref()
+                .is_some_and(|picker| picker.is_open());
+            let here = ui
+                .active
+                .borrow()
+                .as_ref()
+                .is_some_and(|(id, _)| *id == channel);
+            if open && here {
+                fill_emotes(ui);
+            }
+        }
         // What is known about a link, written after it wherever it is.
         Event::LinkReport { report } => {
             let strings = ui.language.get().strings();
@@ -2687,11 +2759,16 @@ fn apply_event(ui: &Rc<Ui>, event: Event) {
         Event::LoggedIn { account } => {
             let text = ui.language.get().strings();
             let said = fill(text.logged_in_as, &[("user", &account.user.display_name)]);
+            // Which emotes one may write is the account's: lists asked for
+            // under another login, or under this one before it was given
+            // more permissions, are asked for again.
+            ui.emote_lists.borrow_mut().clear();
             show_account(ui, Some(&account));
             say_status(ui, NoticeLevel::Info, said);
         }
         Event::LoggedOut => {
             let text = ui.language.get().strings();
+            ui.emote_lists.borrow_mut().clear();
             show_account(ui, None);
             say_status(ui, NoticeLevel::Info, text.logged_out.to_owned());
         }
@@ -4654,10 +4731,28 @@ fn complete(ui: &Ui, direction: isize) -> glib::Propagation {
             (None, None) => None,
         }
         .unwrap_or(&status);
+        let lists = ui.emote_lists.borrow();
+        // The emotes the channel offers come after what was said in it,
+        // so a word typed before still comes first.
+        let offered = channel
+            .as_ref()
+            .filter(|_| whisper.is_none())
+            .and_then(|id| lists.get(id));
         ui.completion
             .borrow_mut()
             .step(&text, cursor, direction, &names, |prefix| {
-                view.completions(prefix)
+                let mut found = view.completions(prefix);
+                if let Some(list) = offered {
+                    let lower = prefix.to_lowercase();
+                    for emote in list.groups.iter().flat_map(|group| &group.emotes) {
+                        if emote.code.to_lowercase().starts_with(&lower)
+                            && !found.contains(&emote.code)
+                        {
+                            found.push(emote.code.clone());
+                        }
+                    }
+                }
+                found
             })
     };
     match step {
@@ -4819,6 +4914,147 @@ fn follow_link(ui: &Rc<Ui>, text: &str, url: &str, message: Option<(UserId, Logi
             crate::link::confirm(&window, text, url, strings, launch, tell)
         }
     }
+}
+
+/// The emotes a channel offers, as the engine last said.
+struct EmoteList {
+    asked: std::time::Instant,
+    groups: Vec<liveside_proto::model::EmoteGroup>,
+    complete: bool,
+}
+
+/// How long a channel's list of emotes is used before it is asked for
+/// again: long enough not to ask at every opening, short enough that a
+/// new subscription shows up.
+const EMOTES_KEPT: std::time::Duration = std::time::Duration::from_secs(10 * 60);
+
+/// The list of emotes is being opened: fills it for the channel on
+/// screen, asking the engine when it has no list or an old one.
+fn open_emotes(ui: &Rc<Ui>) {
+    let strings = ui.language.get().strings();
+    let Some(picker) = ui.emote_picker.borrow().clone() else {
+        return;
+    };
+    let Some((channel, _)) = ui.active.borrow().clone() else {
+        picker.show_note(strings.emotes_no_channel);
+        return;
+    };
+    let age = ui
+        .emote_lists
+        .borrow()
+        .get(&channel)
+        .map(|list| list.asked.elapsed());
+    match age {
+        Some(_) => fill_emotes(ui),
+        None => picker.show_note(strings.emotes_loading),
+    }
+    if age.is_none_or(|age| age > EMOTES_KEPT) {
+        ui.engine.send(Command::ListEmotes { channel });
+    }
+}
+
+/// Puts the channel on screen's emotes into the list: the recently used
+/// ones that it offers first, then its groups.
+fn fill_emotes(ui: &Rc<Ui>) {
+    use liveside_proto::model::{EmoteGroupKind, EmoteProvider};
+    let strings = ui.language.get().strings();
+    let Some(picker) = ui.emote_picker.borrow().clone() else {
+        return;
+    };
+    let Some((channel, login)) = ui.active.borrow().clone() else {
+        return;
+    };
+    let lists = ui.emote_lists.borrow();
+    let Some(list) = lists.get(&channel) else {
+        return;
+    };
+    let offered = |emote: &liveside_proto::model::EmoteRef| {
+        list.groups.iter().any(|group| {
+            group
+                .emotes
+                .iter()
+                .any(|known| known.provider == emote.provider && known.id == emote.id)
+        })
+    };
+    // A recent emote from another channel's 7TV set would not work here.
+    let recent: Vec<_> = ui
+        .recent_emotes
+        .borrow()
+        .iter()
+        .filter(|emote| offered(emote))
+        .cloned()
+        .collect();
+    let provider = |provider| match provider {
+        EmoteProvider::SevenTv => "7TV",
+        EmoteProvider::Bttv => "BetterTTV",
+        EmoteProvider::Ffz => "FrankerFaceZ",
+        EmoteProvider::Twitch => "Twitch",
+        EmoteProvider::Local => "",
+    };
+    let mut sections = vec![crate::emote_picker::Section {
+        title: strings.emotes_recent.to_owned(),
+        emotes: recent,
+    }];
+    for group in &list.groups {
+        let title = match group.kind {
+            EmoteGroupKind::ThisChannel if group.channel.is_empty() => login.to_string(),
+            EmoteGroupKind::ThisChannel | EmoteGroupKind::OtherChannel => group.channel.clone(),
+            EmoteGroupKind::Twitch => "Twitch".to_owned(),
+            EmoteGroupKind::ProviderChannel => {
+                format!("{} · {}", provider(group.provider), login)
+            }
+            EmoteGroupKind::ProviderGlobal => fill(
+                strings.emotes_provider_global,
+                &[("provider", provider(group.provider))],
+            ),
+        };
+        sections.push(crate::emote_picker::Section {
+            title,
+            emotes: group.emotes.clone(),
+        });
+    }
+    let note = (!list.complete).then_some(strings.emotes_incomplete);
+    drop(lists);
+    picker.fill(sections, note);
+}
+
+/// Puts emotes at the top of the recently used ones, and keeps the list.
+fn remember_emotes(ui: &Rc<Ui>, emotes: &[liveside_proto::model::EmoteRef]) {
+    if emotes.is_empty() {
+        return;
+    }
+    let mut recent = ui.recent_emotes.borrow_mut();
+    for emote in emotes {
+        liveside_client::recent_emotes::remember(&mut recent, emote);
+    }
+    // A list that cannot be kept costs a few clicks next time, which is
+    // not worth a message.
+    let _ = liveside_client::recent_emotes::save(&ui.recent_emotes_path, &recent);
+}
+
+/// The emotes in a line being sent to the channel on screen count as used.
+fn remember_sent_emotes(ui: &Rc<Ui>, text: &str) {
+    let Some((channel, _)) = ui.active.borrow().clone() else {
+        return;
+    };
+    let used: Vec<_> = {
+        let lists = ui.emote_lists.borrow();
+        let Some(list) = lists.get(&channel) else {
+            return;
+        };
+        text.split_whitespace()
+            .filter_map(|word| {
+                list.groups
+                    .iter()
+                    .flat_map(|group| &group.emotes)
+                    .find(|emote| emote.code == word)
+                    .cloned()
+            })
+            .collect()
+    };
+    // The first word of the line ends up first, as it was the first used.
+    let used: Vec<_> = used.into_iter().rev().collect();
+    remember_emotes(ui, &used);
 }
 
 /// Says something about a link in a chat. Not as a reply: a reply reads

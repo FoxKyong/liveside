@@ -102,6 +102,8 @@ there yet.
   - Several channels at once, side by side or in windows of their own.
   - Emotes from Twitch, 7TV, BetterTTV and FrankerFaceZ, animated ones
     included, and each channel's own badges.
+  - A list of the emotes you can write, as pictures with a search,
+    so a streamer's custom emotes need not be spelt from memory.
   - Replies, mentions, search, whispers in threads of their own, and
     Shared Chat.
   - A local chat log, so a channel you rejoin comes back with its

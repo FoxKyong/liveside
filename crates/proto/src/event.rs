@@ -439,6 +439,19 @@ pub enum Event {
         channels: Vec<crate::model::Channel>,
     },
 
+    /// The emotes one can write in a channel, as asked for with
+    /// `ListEmotes`: the channel's own first, then other channels', then
+    /// Twitch's, then the third-party providers'.
+    EmoteList {
+        channel: crate::UserId,
+        groups: Vec<crate::model::EmoteGroup>,
+        /// False when the login cannot say which Twitch emotes the account
+        /// may use, so the list has the channel's and Twitch's global
+        /// ones instead; logging in again gives the full answer.
+        #[serde(default = "yes")]
+        complete: bool,
+    },
+
     /// The channels this account follows, as asked for: the live ones
     /// first, the most watched first, then the rest by name.
     FollowedChannels {
@@ -579,4 +592,9 @@ pub enum Event {
     ChatCleared {
         channel: UserId,
     },
+}
+
+/// For a field that is true unless it says otherwise.
+fn yes() -> bool {
+    true
 }

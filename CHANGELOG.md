@@ -16,12 +16,21 @@ follow [Semantic Versioning](https://semver.org/).
   has a warning sign in front when something is wrong. One or two of
   VirusTotal's engines alone, which flag even google.com now and then,
   are reported as a likely false alarm rather than as a warning.
+- A list of emotes to pick from, beside the input line in the window:
+  the ones used last, the channel's own, other channels' that one has as
+  a subscriber or follower, Twitch's, and the 7TV, BetterTTV and
+  FrankerFaceZ ones, as pictures, with a search and Unicode emoji. Tab
+  completes emotes from it as well.
 - The usage guide says how to watch logged in with Streamlink, so that
   a subscriber gets no ads: Liveside's login cannot be used for that, a
   token from the browser in Streamlink's own settings can.
 
 ### Changed
 
+- Liveside asks for one more permission, `user:read:emotes`, to know
+  which Twitch emotes the account may write. A login from before says so
+  at start; log out and in again for the emote list to show exactly
+  yours (until then it shows every emote of the channel).
 - The channels to open at start are no longer a setting of their own.
   Liveside already opened again the channels open at the end, so joining
   a channel (**Join a channel…**, `/join`) is what keeps it, and leaving

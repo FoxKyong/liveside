@@ -258,6 +258,35 @@ impl EmoteRef {
     }
 }
 
+/// Emotes that belong together in a list to pick from: one channel's,
+/// Twitch's own, or one provider's.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EmoteGroup {
+    pub kind: EmoteGroupKind,
+    /// The channel's display name for a channel's emotes, empty otherwise.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub channel: String,
+    pub provider: EmoteProvider,
+    pub emotes: Vec<EmoteRef>,
+}
+
+/// What an [`EmoteGroup`] is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EmoteGroupKind {
+    /// The Twitch emotes of the channel asked about that one may use.
+    ThisChannel,
+    /// Another channel's Twitch emotes that one may use, as a subscriber
+    /// or a follower there.
+    OtherChannel,
+    /// Twitch's own, for everyone.
+    Twitch,
+    /// A third-party provider's emotes for the channel asked about.
+    ProviderChannel,
+    /// A third-party provider's emotes for every channel.
+    ProviderGlobal,
+}
+
 /// Where an emote comes from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

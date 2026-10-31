@@ -1210,6 +1210,9 @@ impl App {
             }
             // The channels this account moderates, said where the reader
             // is; the ones already joined are marked.
+            // The list to pick emotes from is the window's; the terminal
+            // shows no pictures and completes codes with Tab instead.
+            Event::EmoteList { .. } => {}
             Event::ModeratedChannels { channels } => {
                 let text = self.text();
                 let said = if channels.is_empty() {

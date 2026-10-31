@@ -496,6 +496,33 @@ struct ChatSettings {
     unique_chat_mode: bool,
 }
 
+/// A Twitch emote as the emote lists give it.
+#[derive(Debug, Clone, Deserialize)]
+pub struct HelixEmote {
+    pub id: String,
+    pub name: String,
+    /// `subscriptions`, `follower`, `bitstier`, `globals`, `smilies`, ...
+    #[serde(default)]
+    pub emote_type: String,
+    /// The channel it belongs to; empty, `0` or `twitch` for Twitch's own.
+    #[serde(default)]
+    pub owner_id: String,
+    /// `static`, and `animated` when there is a moving version.
+    #[serde(default)]
+    pub format: Vec<String>,
+}
+
+impl HelixEmote {
+    /// Whether this is one of Twitch's own rather than a channel's.
+    pub fn is_twitch(&self) -> bool {
+        matches!(self.owner_id.as_str(), "" | "0" | "twitch")
+            || !matches!(
+                self.emote_type.as_str(),
+                "subscriptions" | "follower" | "bitstier"
+            )
+    }
+}
+
 /// An EventSub subscription as Helix reports it.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Subscription {
@@ -543,6 +570,78 @@ impl Helix {
                 display_name: user.display_name,
             })
             .collect())
+    }
+
+    /// Looks users up by id, a hundred at a time as Twitch allows.
+    pub async fn users_by_id(&self, ids: &[&str]) -> Result<Vec<User>> {
+        let mut out = Vec::new();
+        for chunk in ids.chunks(100) {
+            let query: Vec<(&str, &str)> = chunk.iter().map(|id| ("id", *id)).collect();
+            let response = self
+                .request(reqwest::Method::GET, "/users")
+                .query(&query)
+                .send()
+                .await?;
+            let page: Page<HelixUser> = parse(response).await?;
+            out.extend(page.data.into_iter().map(|user| User {
+                id: user.id.into(),
+                login: user.login.into(),
+                display_name: user.display_name,
+            }));
+        }
+        Ok(out)
+    }
+
+    /// Every Twitch emote this account may write, with the follower emotes
+    /// of `broadcaster_id` among them. Needs `user:read:emotes`.
+    pub async fn user_emotes(
+        &self,
+        user_id: &str,
+        broadcaster_id: &str,
+    ) -> Result<Vec<HelixEmote>> {
+        let mut out = Vec::new();
+        let mut cursor: Option<String> = None;
+        loop {
+            let mut query = vec![("user_id", user_id), ("broadcaster_id", broadcaster_id)];
+            if let Some(cursor) = &cursor {
+                query.push(("after", cursor));
+            }
+            let response = self
+                .request(reqwest::Method::GET, "/chat/emotes/user")
+                .query(&query)
+                .send()
+                .await?;
+            let page: Paged<HelixEmote> = parse(response).await?;
+            let empty = page.data.is_empty();
+            out.extend(page.data);
+            cursor = page.pagination.and_then(|p| p.cursor);
+            // A few thousand is more than any account has; the bound is
+            // there so a cursor that never ends cannot keep this asking.
+            if cursor.is_none() || empty || out.len() >= 5000 {
+                return Ok(out);
+            }
+        }
+    }
+
+    /// A channel's own emotes, all of them, whether this account may write
+    /// them or not; `None` for Twitch's global ones. Needs no scope.
+    pub async fn emotes(&self, broadcaster_id: Option<&str>) -> Result<Vec<HelixEmote>> {
+        let mut request = match broadcaster_id {
+            Some(id) => self
+                .request(reqwest::Method::GET, "/chat/emotes")
+                .query(&[("broadcaster_id", id)]),
+            None => self.request(reqwest::Method::GET, "/chat/emotes/global"),
+        };
+        request = request.header("Accept", "application/json");
+        let page: Page<HelixEmote> = parse(request.send().await?).await?;
+        let mut emotes = page.data;
+        if let Some(id) = broadcaster_id {
+            // This list does not say whose they are: the channel's.
+            for emote in &mut emotes {
+                emote.owner_id = id.to_owned();
+            }
+        }
+        Ok(emotes)
     }
 
     /// The channel's current chat restrictions. Needs no special scope,
@@ -2024,6 +2123,27 @@ async fn api_error(response: reqwest::Response) -> Error {
 #[cfg(test)]
 mod counted_tests {
     use super::*;
+
+    #[test]
+    fn an_emote_list_reads_as_twitch_sends_it() {
+        // The example from Twitch's reference for Get User Emotes.
+        let page: Paged<HelixEmote> = serde_json::from_str(
+            r#"{"data": [
+                {"id": "emotesv2_dc24652ada1e4c84a5e3ceebae4de709", "name": "twitchdevPitchfork",
+                 "emote_type": "subscriptions", "emote_set_id": "0", "owner_id": "141981764",
+                 "format": ["static", "animated"], "scale": ["1.0"], "theme_mode": ["dark"]},
+                {"id": "1", "name": ":)", "emote_type": "smilies", "emote_set_id": "0",
+                 "owner_id": "0", "format": ["static"], "scale": ["1.0"], "theme_mode": ["dark"]}],
+               "template": "https://static-cdn.jtvnw.net/emoticons/v2/{{id}}/{{format}}/{{theme_mode}}/{{scale}}",
+               "pagination": {"cursor": "eyJiIjpudWxsLCJh"}}"#,
+        )
+        .unwrap();
+        assert_eq!(page.data[0].name, "twitchdevPitchfork");
+        assert!(!page.data[0].is_twitch());
+        assert!(page.data[0].format.iter().any(|f| f == "animated"));
+        assert!(page.data[1].is_twitch());
+        assert!(page.pagination.unwrap().cursor.is_some());
+    }
 
     #[test]
     fn a_counted_page_reads_as_twitch_sends_it() {

@@ -1123,6 +1123,38 @@ impl Demo {
                 })
                 .await;
             }
+            BackendRequest::ListEmotes { channel } => {
+                use liveside_proto::model::{EmoteGroup, EmoteGroupKind};
+                self.joined(&channel)?;
+                // The invented channel's own emotes are two of the real
+                // global ones, so that their pictures load.
+                let emote = |&(code, id): &(&str, &str)| EmoteRef {
+                    provider: EmoteProvider::Twitch,
+                    id: id.into(),
+                    code: code.into(),
+                    animated: false,
+                    zero_width: false,
+                };
+                let (own, global): (Vec<_>, Vec<_>) = EMOTES
+                    .iter()
+                    .partition(|(code, _)| matches!(*code, "SeemsGood" | "LUL"));
+                let group = |kind, channel: &str, list: Vec<&(&str, &str)>| EmoteGroup {
+                    kind,
+                    channel: channel.to_owned(),
+                    provider: EmoteProvider::Twitch,
+                    emotes: list.into_iter().map(emote).collect(),
+                };
+                self.emit(Event::EmoteList {
+                    channel,
+                    groups: vec![
+                        // Only the id is kept here; the frontend knows the name.
+                        group(EmoteGroupKind::ThisChannel, "", own),
+                        group(EmoteGroupKind::Twitch, "", global),
+                    ],
+                    complete: true,
+                })
+                .await;
+            }
             BackendRequest::ShowModeratedChannels => {
                 let channel = |id: &str, login: &str, name: &str| Channel {
                     id: id.into(),

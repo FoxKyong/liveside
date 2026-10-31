@@ -102,6 +102,11 @@ pub const SCOPES: &[&str] = &[
     // The channels this account follows, and which of them stream: the
     // other answer to it.
     "user:read:follows",
+    // Which Twitch emotes this account may write: a subscriber's emotes
+    // from every channel, follower and bits emotes, for the list to pick
+    // from. Without it the list can only offer every emote of the channel
+    // on screen, usable or not.
+    "user:read:emotes",
 ];
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -128,6 +128,7 @@ pub mod lang;
 pub mod layout;
 pub mod links;
 pub mod notify;
+pub mod recent_emotes;
 pub mod settings;
 pub mod streamlink;
 

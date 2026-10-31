@@ -1392,6 +1392,7 @@ impl Twitch {
             BackendRequest::SnoozeAd { channel } => self.show_ads(channel, true).await,
             BackendRequest::SendWhisper { user, text } => self.send_whisper(user, text).await,
             BackendRequest::ShowModeratedChannels => self.show_moderated_channels().await,
+            BackendRequest::ListEmotes { channel } => self.list_emotes(&channel).await,
             BackendRequest::ShowFollowedChannels => self.show_followed_channels().await,
             BackendRequest::CreateClip { channel } => self.create_clip(channel).await,
             BackendRequest::ShowRewards { channel } => self.show_rewards(channel).await,
@@ -2355,6 +2356,80 @@ impl Twitch {
         channels.sort_by(|a, b| a.login.as_str().cmp(b.login.as_str()));
         self.emit(Event::ModeratedChannels { channels }).await;
         Ok(())
+    }
+
+    /// Lists the emotes one can write in a joined channel: the Twitch
+    /// emotes this account may use, grouped by the channel they belong
+    /// to, then the 7TV, BTTV and FFZ ones. A login from before
+    /// `user:read:emotes` gets every emote of this channel and Twitch's
+    /// global ones instead, and the list says it is not the full answer.
+    async fn list_emotes(&mut self, channel: &UserId) -> CommandResult {
+        let Some(joined) = self.channels.get(channel) else {
+            return Err(error(
+                ErrorKind::NotJoined,
+                "channel.not_joined",
+                &[("channel", channel.as_str())],
+                format!("Not in channel {channel}"),
+            ));
+        };
+        let name = joined.login.to_string();
+        let mut groups = Vec::new();
+        let mut complete = true;
+        let mut failed = None;
+        if let (Some(account), Some(helix)) = (self.account.clone(), self.helix.clone()) {
+            let id = channel.as_str();
+            let twitch = if account.scopes.iter().any(|s| s == EMOTES_SCOPE) {
+                helix.user_emotes(account.user.id.as_str(), id).await
+            } else {
+                complete = false;
+                let (own, global) = tokio::join!(helix.emotes(Some(id)), helix.emotes(None));
+                own.and_then(|mut own| {
+                    own.extend(global?);
+                    Ok(own)
+                })
+            };
+            match twitch {
+                Ok(emotes) => {
+                    let owners: Vec<&str> = emotes
+                        .iter()
+                        .filter(|emote| !emote.is_twitch() && emote.owner_id != id)
+                        .map(|emote| emote.owner_id.as_str())
+                        .collect::<HashSet<_>>()
+                        .into_iter()
+                        .collect();
+                    // Without names the groups still work, under their ids.
+                    let names: HashMap<String, String> = helix
+                        .users_by_id(&owners)
+                        .await
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|user| (user.id.to_string(), user.display_name))
+                        .collect();
+                    groups.extend(twitch_emote_groups(id, &name, emotes, &names));
+                }
+                Err(e) => failed = Some(from_twitch(e)),
+            }
+        }
+        let joined = self.channels.get(channel).expect("looked up above");
+        groups.extend(provider_emote_groups(
+            &joined.emotes,
+            liveside_proto::model::EmoteGroupKind::ProviderChannel,
+            &name,
+        ));
+        groups.extend(provider_emote_groups(
+            &self.global_emotes,
+            liveside_proto::model::EmoteGroupKind::ProviderGlobal,
+            "",
+        ));
+        self.emit(Event::EmoteList {
+            channel: channel.clone(),
+            groups,
+            complete,
+        })
+        .await;
+        // The third-party emotes are listed even when Twitch's could not
+        // be; the reason is said after them.
+        failed.map_or(Ok(()), Err)
     }
 
     /// Says which channels this account follows and which of them
@@ -4624,6 +4699,98 @@ async fn subscribe(
 
 /// What reading the account's follows needs.
 const FOLLOWS_SCOPE: &str = "user:read:follows";
+/// Which Twitch emotes this account may write.
+const EMOTES_SCOPE: &str = "user:read:emotes";
+
+/// Twitch's emotes as lists to pick from: the channel's own first, then
+/// every other channel's by name, then Twitch's. Each emote once, in the
+/// order Twitch gave them, which for a channel is by tier.
+fn twitch_emote_groups(
+    channel: &str,
+    channel_name: &str,
+    emotes: Vec<liveside_twitch::helix::HelixEmote>,
+    names: &HashMap<String, String>,
+) -> Vec<liveside_proto::model::EmoteGroup> {
+    use liveside_proto::model::{EmoteGroup, EmoteGroupKind, EmoteProvider, EmoteRef};
+    let group = |kind, channel: &str| EmoteGroup {
+        kind,
+        channel: channel.to_owned(),
+        provider: EmoteProvider::Twitch,
+        emotes: Vec::new(),
+    };
+    let mut own = group(EmoteGroupKind::ThisChannel, channel_name);
+    let mut twitch = group(EmoteGroupKind::Twitch, "");
+    let mut others: HashMap<String, EmoteGroup> = HashMap::new();
+    let mut seen = HashSet::new();
+    for emote in emotes {
+        if !seen.insert(emote.id.clone()) {
+            continue;
+        }
+        let picked = EmoteRef {
+            provider: EmoteProvider::Twitch,
+            animated: emote.format.iter().any(|f| f == "animated"),
+            zero_width: false,
+            code: emote.name.clone(),
+            id: emote.id.clone(),
+        };
+        if emote.is_twitch() {
+            twitch.emotes.push(picked);
+        } else if emote.owner_id == channel {
+            own.emotes.push(picked);
+        } else {
+            let name = names
+                .get(&emote.owner_id)
+                .cloned()
+                .unwrap_or_else(|| emote.owner_id.clone());
+            others
+                .entry(emote.owner_id.clone())
+                .or_insert_with(|| group(EmoteGroupKind::OtherChannel, &name))
+                .emotes
+                .push(picked);
+        }
+    }
+    let mut others: Vec<EmoteGroup> = others.into_values().collect();
+    others.sort_by_key(|group| group.channel.to_lowercase());
+    std::iter::once(own)
+        .chain(others)
+        .chain(std::iter::once(twitch))
+        .filter(|group| !group.emotes.is_empty())
+        .collect()
+}
+
+/// A third-party set as lists to pick from, one per provider, each in
+/// alphabetical order.
+fn provider_emote_groups(
+    set: &EmoteSet,
+    kind: liveside_proto::model::EmoteGroupKind,
+    channel: &str,
+) -> Vec<liveside_proto::model::EmoteGroup> {
+    use liveside_proto::model::{EmoteGroup, EmoteProvider};
+    [
+        EmoteProvider::SevenTv,
+        EmoteProvider::Bttv,
+        EmoteProvider::Ffz,
+    ]
+    .into_iter()
+    .filter_map(|provider| {
+        let mut emotes: Vec<_> = set
+            .iter()
+            .filter(|emote| emote.provider == provider)
+            .cloned()
+            .collect();
+        if emotes.is_empty() {
+            return None;
+        }
+        emotes.sort_by_key(|emote| emote.code.to_lowercase());
+        Some(EmoteGroup {
+            kind,
+            channel: channel.to_owned(),
+            provider,
+            emotes,
+        })
+    })
+    .collect()
+}
 
 /// The followed channels and the streams among them, as one list: the
 /// live ones first, in Twitch's order (the most watched first), then the
@@ -4811,6 +4978,56 @@ mod event_tests {
 #[cfg(test)]
 mod tests {
     use super::renew_in;
+
+    mod emote_groups {
+        use super::super::*;
+        use liveside_proto::model::EmoteGroupKind;
+        use liveside_twitch::helix::HelixEmote;
+
+        fn emote(id: &str, owner: &str, kind: &str) -> HelixEmote {
+            HelixEmote {
+                id: id.into(),
+                name: format!("code{id}"),
+                emote_type: kind.into(),
+                owner_id: owner.into(),
+                format: vec!["static".into()],
+            }
+        }
+
+        #[test]
+        fn the_channels_own_come_first_then_others_by_name_then_twitchs() {
+            let emotes = vec![
+                emote("1", "0", "globals"),
+                emote("2", "500", "subscriptions"),
+                emote("3", "100", "subscriptions"),
+                emote("4", "300", "follower"),
+                emote("3", "100", "subscriptions"),
+                emote("5", "", "smilies"),
+            ];
+            let names: HashMap<String, String> = [
+                ("500".to_owned(), "Zeta".to_owned()),
+                ("300".to_owned(), "alpha".to_owned()),
+            ]
+            .into();
+            let groups = twitch_emote_groups("100", "here", emotes, &names);
+            let kinds: Vec<_> = groups
+                .iter()
+                .map(|g| (g.kind, g.channel.as_str()))
+                .collect();
+            assert_eq!(
+                kinds,
+                [
+                    (EmoteGroupKind::ThisChannel, "here"),
+                    (EmoteGroupKind::OtherChannel, "alpha"),
+                    (EmoteGroupKind::OtherChannel, "Zeta"),
+                    (EmoteGroupKind::Twitch, ""),
+                ]
+            );
+            // Each emote once, though Twitch listed it twice.
+            assert_eq!(groups[0].emotes.len(), 1);
+            assert_eq!(groups[3].emotes.len(), 2);
+        }
+    }
 
     mod followed {
         use super::super::*;
