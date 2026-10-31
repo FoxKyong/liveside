@@ -59,6 +59,14 @@ or leave it. A message's menu can ignore its author.
 
 On a Mac, Cmd does what Ctrl does here.
 
+If a pixel or two of earlier text stays behind after switching channels,
+it is GTK's GPU renderer missing a row when it redraws ([GTK issue
+8340](https://gitlab.gnome.org/GNOME/gtk/-/work_items/8340), still in GTK
+4.24, with GL and Vulkan, and only with some fonts). Starting the
+window with `GSK_RENDERER=cairo liveside-gui` avoids it; to make that
+permanent, put `GSK_RENDERER=cairo` in `~/.config/environment.d/gsk.conf`
+(it then applies to every GTK 4 program after the next login).
+
 ## The terminal
 
 | Key | Does |
