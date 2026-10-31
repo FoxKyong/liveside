@@ -233,6 +233,9 @@ be attached at once. A systemd user service for it is in
 - Translations other than English and Czech are made by a machine and
   wait for someone to check them.
 - Guest Star waits until Twitch's interface for it leaves beta.
+- Channel point rewards cannot be redeemed, nor Bits cheered, from
+  Liveside: Twitch gives other programs no way to redeem as a viewer and
+  documents none for cheering ([docs/usage.md](docs/usage.md#the-window)).
 
 ## Building and developing
 

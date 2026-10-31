@@ -80,6 +80,13 @@ Twitch with the `user:read:emotes` permission: a login made before the
 list existed lacks it, and until you log in again the list shows every
 emote of the channel instead, usable or not, and says so.
 
+There is no button for channel point rewards or for Bits beside it.
+Twitch lets another program manage a broadcaster's rewards (Moderate →
+Rewards…) but not redeem one as a viewer, nor see how many points you
+have; only Twitch's own website and apps can. Nor does Twitch document
+a way for another program to cheer Bits, so Liveside does not offer it.
+Redeem and cheer on twitch.tv or in Twitch's app.
+
 | Key | Does |
 |---|---|
 | Tab, Shift-Tab | complete a name, emote (also from that list), command or `:emoji` shortcode; the one before |

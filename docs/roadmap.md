@@ -320,6 +320,22 @@ Twitch's own words.
   **Block / Unblock User** at the account level: they belong to the website
   rather than to a chat window. Blocking may be worth revisiting if people
   ask for it.
+- **Redeeming channel point rewards as a viewer** (asked for beside the
+  emote list, 2026-10-31): Twitch's API has no way to. It lets the
+  broadcaster create, change and answer rewards, which Liveside does, but
+  has no endpoint for a viewer to redeem one, nor to read how many points
+  the viewer has. The website does it through Twitch's private interface,
+  which is not for other programs.
+- **Cheering Bits** (asked for at the same time): open. **Get Cheermotes**
+  would give a list of cheermotes like the emote list, but Twitch
+  documents no way for another program to spend Bits, and whether a
+  `Cheer1` sent from Liveside spends one or arrives as plain text has not
+  been tried (it costs a Bit). If it does spend it, the list is worth
+  making; if not, there is nothing to make.
+- **Opening Twitch's pop-out chat in the browser** for Bits and rewards:
+  considered and dropped. It works only with a login in the default
+  browser, which may be missing or another account than Liveside's, and
+  would confuse more than it helps.
 
 ## The user's own bots
 
