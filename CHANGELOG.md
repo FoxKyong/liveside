@@ -4,6 +4,19 @@ What changed in each version of Liveside. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Fixed
+
+- In the window, a message whose badges or emotes arrived together
+  showed only the last of them while their pictures were still being
+  fetched, as with the first messages after start or in a new channel:
+  each picture took the one before it away again.
+- Badges and emotes in the window sit in the middle of the line, as on
+  Twitch, instead of standing on the baseline above the letters, which
+  also pushed lines with pictures apart. Badges are a little smaller
+  than the line and stand apart from each other.
+
 ## 0.10.0 — 2026-10-31
 
 ### Added

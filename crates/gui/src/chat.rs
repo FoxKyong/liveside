@@ -109,6 +109,8 @@ impl ChatView {
         }
         table.add(&make_tag(Some("name"), None, true));
         table.add(&gtk::TextTag::new(Some("link")));
+        table.add(&gtk::TextTag::new(Some("picture")));
+        table.add(&gtk::TextTag::new(Some("badge_picture")));
         for name in ["found", "found_here"] {
             table.add(&gtk::TextTag::new(Some(name)));
         }
@@ -155,8 +157,20 @@ impl ChatView {
         });
         let font = monospace_font();
         view.pango_context().set_font_description(&font);
-        // An emote as tall as the text keeps the lines evenly spaced.
+        // An emote as tall as the text keeps the lines evenly spaced. GTK
+        // stands a picture in the text on the baseline, so it would reach
+        // above the letters by their descent and push the line apart;
+        // lowered by that much it covers the line as the text does.
         let emote_height = line_height(&view, &font);
+        let descent = view.pango_context().metrics(Some(&font), None).descent();
+        if let Some(picture) = buffer.tag_table().lookup("picture") {
+            picture.set_rise(-descent);
+        }
+        // A badge a little smaller than the line, as on Twitch, so badges
+        // on lines one under another do not touch; still centred on it.
+        if let Some(badge) = buffer.tag_table().lookup("badge_picture") {
+            badge.set_rise(-(descent - BADGE_SHRINK * pango::SCALE / 2));
+        }
 
         let scroll = gtk::ScrolledWindow::builder()
             .child(&view)
@@ -683,7 +697,9 @@ impl ChatView {
         if badges.is_empty() {
             return;
         }
-        for badge in badges {
+        for (i, badge) in badges.iter().enumerate() {
+            // Apart from the next badge; the last is followed by a space.
+            let gap = if i + 1 < badges.len() { BADGE_GAP } else { 0 };
             let symbol = badge_symbol(badge);
             if badge.image.is_empty() {
                 if let Some(symbol) = symbol {
@@ -705,14 +721,19 @@ impl ChatView {
                 badge_key(badge),
                 badge.image.clone(),
                 tooltip,
+                gap,
             );
         }
         insert(&self.buffer, " ", &[]);
     }
 
     /// Writes `text`, then replaces it with the picture at `url` once that
-    /// has been fetched. Both marks keep left gravity, so the lines
-    /// written while the picture is on its way stay to their right.
+    /// has been fetched. The end mark keeps left gravity, so what is
+    /// written after the text while the picture is on its way stays to its
+    /// right. The start mark has right gravity: when the picture just
+    /// before lands (two badges, two emotes side by side), it goes in at
+    /// this start and must stay to its left, or this replacement would
+    /// take it away again along with the text.
     fn replace_with_picture(
         &self,
         text: &str,
@@ -720,28 +741,42 @@ impl ChatView {
         key: String,
         url: String,
         tooltip: String,
+        gap: i32,
     ) {
         let buffer = &self.buffer;
         let start_offset = buffer.end_iter().offset();
         insert(buffer, text, &[tag]);
-        let start = buffer.create_mark(None, &buffer.iter_at_offset(start_offset), true);
+        let start = buffer.create_mark(None, &buffer.iter_at_offset(start_offset), false);
         let end = buffer.create_mark(None, &buffer.end_iter(), true);
 
         let buffer = buffer.clone();
         let view = self.view.clone();
         let emotes = self.emotes.clone();
-        let height = self.emote_height;
+        let (height, lowered) = if tag == "badge" {
+            (self.emote_height - BADGE_SHRINK, "badge_picture")
+        } else {
+            (self.emote_height, "picture")
+        };
         self.emotes.request_url(key, url, move |animation| {
-            // The line may have scrolled out of the buffer by now.
             if start.is_deleted() || end.is_deleted() {
                 return;
             }
             let mut from = buffer.iter_at_mark(&start);
             let mut to = buffer.iter_at_mark(&end);
-            buffer.delete(&mut from, &mut to);
-            let mut at = buffer.iter_at_mark(&start);
-            let anchor = buffer.create_child_anchor(&mut at);
-            view.add_child_at_anchor(&emotes.picture(animation, &tooltip, height), &anchor);
+            // The line may have been trimmed off the top by now, which
+            // leaves both marks together where it was.
+            if from.offset() < to.offset() {
+                buffer.delete(&mut from, &mut to);
+                let anchor = buffer.create_child_anchor(&mut from);
+                let mut before = from;
+                before.backward_char();
+                buffer.apply_tag_by_name(lowered, &before, &from);
+                let picture = emotes.picture(animation, &tooltip, height);
+                picture.set_margin_end(gap);
+                view.add_child_at_anchor(&picture, &anchor);
+            }
+            buffer.delete_mark(&start);
+            buffer.delete_mark(&end);
         });
     }
 
@@ -754,7 +789,7 @@ impl ChatView {
             return;
         };
         let key = format!("{:?}-{}", emote.provider, emote.id);
-        self.replace_with_picture(&emote.code, "emote", key, url, emote.code.clone());
+        self.replace_with_picture(&emote.code, "emote", key, url, emote.code.clone(), 0);
     }
 
     /// Writes a message AutoMod is holding, with the two decisions as
@@ -1245,8 +1280,12 @@ fn insert(buffer: &gtk::TextBuffer, text: &str, tags: &[&str]) {
     }
 }
 
-/// `~` broadcaster, `@` moderator, and so on, as in the terminal: what a
-/// badge looks like before its picture arrives, or without one.
+/// Pixels between one badge and the next, as Twitch leaves them.
+const BADGE_GAP: i32 = 3;
+
+/// How many pixels shorter than a line a badge is drawn.
+const BADGE_SHRINK: i32 = 2;
+
 /// Stops GTK's own menu from opening on a view whose text cannot be
 /// edited: Cut, Paste, Delete, Undo and Redo can never do anything
 /// there, and a menu of nothing but dead entries is worse than none.
@@ -1260,6 +1299,8 @@ pub fn swallow_context_menu(view: &gtk::TextView) {
     view.add_controller(click);
 }
 
+/// `~` broadcaster, `@` moderator, and so on, as in the terminal: what a
+/// badge looks like before its picture arrives, or without one.
 pub fn badge_symbol(badge: &liveside_proto::model::Badge) -> Option<char> {
     Some(match badge.set_id.as_str() {
         "broadcaster" => '~',
