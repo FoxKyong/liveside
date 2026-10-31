@@ -16,6 +16,9 @@ follow [Semantic Versioning](https://semver.org/).
   has a warning sign in front when something is wrong. One or two of
   VirusTotal's engines alone, which flag even google.com now and then,
   are reported as a likely false alarm rather than as a warning.
+- The usage guide says how to watch logged in with Streamlink, so that
+  a subscriber gets no ads: Liveside's login cannot be used for that, a
+  token from the browser in Streamlink's own settings can.
 
 ### Changed
 

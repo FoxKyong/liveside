@@ -114,6 +114,48 @@ Select a message with **Ctrl-Up/Down** and **Ctrl-T**, **Ctrl-B** or
 **Ctrl-D** prepares a timeout, ban or delete for it, to send with Enter;
 in the window, right-click the message.
 
+## Watching with Streamlink
+
+▶ in the window, or `/stream [quality]` in the terminal, starts
+[Streamlink](https://streamlink.github.io/) for the channel; the settings
+say which quality, which player and what else to pass it.
+
+Streamlink watches without logging in, so even a channel you subscribe
+to sends it ads; Streamlink cuts them out, which leaves a pause instead.
+Liveside's own login cannot help here: Twitch hands out a stream only to
+a login made on its website, not to one made by another program, which
+is why Streamlink dropped logging in itself in 2020. The login from your
+browser works:
+
+1. Log in at twitch.tv, open the browser's developer tools (F12), and in
+   the Console tab run
+
+   ```js
+   document.cookie.split("; ").find(item=>item.startsWith("auth-token="))?.split("=")[1]
+   ```
+
+   It prints your token, about 30 letters and digits.
+2. Put it into Streamlink's own settings for Twitch,
+   `~/.config/streamlink/config.twitch`:
+
+   ```
+   twitch-api-header=Authorization=OAuth YOUR_TOKEN
+   ```
+
+   and make the file readable only by you: `chmod 600
+   ~/.config/streamlink/config.twitch`.
+
+Streamlink reads that file whenever it plays Twitch, so ▶ uses it with no
+change in Liveside, the Flatpak too (it starts the Streamlink installed on
+your system). Keep the token out of the `arguments` setting: that would
+put it in `config.toml`, which people share, and on the command line,
+where other users of the machine can see it.
+
+The token is your whole account, as Twitch's website uses it. Logging
+out does not end it; changing your password, or "Sign Out Everywhere" in
+Twitch's security settings, does. Streamlink's own instructions are at
+[streamlink.github.io](https://streamlink.github.io/cli/plugins/twitch.html#authentication).
+
 ## Settings
 
 Press **F2** (or type `/settings`) to see and change the settings, and `s`
@@ -174,7 +216,7 @@ alice = ["friends", "vip"]                            # and /join [czech]
 [streamlink]
 quality = "best"          # ▶ in the window, /stream in the terminal
 player = ""               # e.g. "mpv"; empty: Streamlink's own choice
-arguments = ""            # e.g. "--twitch-low-latency"
+arguments = ""            # e.g. "--twitch-low-latency"; never your token (see Watching with Streamlink)
 
 [notify]
 when = "unseen"           # or "unfocused", "always"

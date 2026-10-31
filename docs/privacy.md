@@ -43,7 +43,9 @@ only when you ask for that as a second step.
 
 Streamlink, when you start it from the client, is a program of its own:
 it talks to Twitch (and to the player) itself, and the client only
-starts it with the channel's address.
+starts it with the channel's address. Liveside's login is never passed
+to it; watching logged in takes a token from the browser in Streamlink's
+own settings (docs/usage.md, "Watching with Streamlink").
 
 That is the whole list. There is no telemetry, no crash reporting, no
 update check, and no analytics. Nothing is sent to the author.
