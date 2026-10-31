@@ -146,6 +146,9 @@ impl ChatView {
             .wrap_mode(gtk::WrapMode::WordChar)
             .left_margin(6)
             .right_margin(6)
+            // Air between messages, so a busy chat reads line by line; the
+            // lines of one wrapped message stay together.
+            .pixels_below_lines(MESSAGE_GAP)
             .build();
         // Ctrl+C takes the same way as the menu's copy: emotes as their
         // codes and without the marks that only set directions apart.
@@ -1279,6 +1282,9 @@ fn insert(buffer: &gtk::TextBuffer, text: &str, tags: &[&str]) {
         buffer.insert_with_tags_by_name(&mut end, text, tags);
     }
 }
+
+/// Pixels between one message and the next.
+const MESSAGE_GAP: i32 = 4;
 
 /// Pixels between one badge and the next, as Twitch leaves them.
 const BADGE_GAP: i32 = 3;

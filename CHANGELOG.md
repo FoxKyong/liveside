@@ -15,7 +15,9 @@ follow [Semantic Versioning](https://semver.org/).
 - Badges and emotes in the window sit in the middle of the line, as on
   Twitch, instead of standing on the baseline above the letters, which
   also pushed lines with pictures apart. Badges are a little smaller
-  than the line and stand apart from each other.
+  than the line and stand apart from each other, and messages have a
+  little space between them, while the lines of one wrapped message
+  stay together.
 
 ## 0.10.0 — 2026-10-31
 
