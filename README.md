@@ -176,9 +176,11 @@ package also installs the launcher entry, the icon, the daemon's user
 service and the example bot.
 
 Elsewhere, take the Flatpak bundle from the
-[latest release](https://github.com/FoxKyong/liveside/releases/latest)
-and install it with `flatpak install --user liveside-*.flatpak`; it runs
-on the GNOME 51 runtime, which Flatpak fetches from Flathub. The Flatpak
+[latest release](https://github.com/FoxKyong/liveside/releases/latest):
+`x86_64` for an ordinary PC, `aarch64` for 64-bit ARM such as a
+Raspberry Pi (what `uname -m` says is the one). Install it with
+`flatpak install --user liveside-*-$(uname -m).flatpak`; it runs on the
+GNOME 51 runtime, which Flatpak fetches from Flathub. The Flatpak
 can also be built from `packaging/flatpak/` (how is at the top of its
 manifest).
 

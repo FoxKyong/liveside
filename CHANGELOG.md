@@ -4,6 +4,14 @@ What changed in each version of Liveside. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- A Flatpak bundle for 64-bit ARM (`aarch64`), such as a Raspberry Pi,
+  beside the one for ordinary PCs; the 0.10.1 release has one too. The
+  install instructions say which to take.
+
 ## 0.10.1 — 2026-11-01
 
 ### Fixed
