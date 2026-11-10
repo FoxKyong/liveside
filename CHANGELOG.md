@@ -11,6 +11,9 @@ follow [Semantic Versioning](https://semver.org/).
 - A Flatpak bundle for 64-bit ARM (`aarch64`), such as a Raspberry Pi,
   beside the one for ordinary PCs; the 0.10.1 release has one too. The
   install instructions say which to take.
+- Liveside builds and runs on 64-bit RISC-V (`riscv64`), tried on an
+  Orange Pi RV2 with Armbian (Debian 13); the README says so. The AUR
+  package lists `aarch64` and `riscv64` as well.
 
 ## 0.10.1 — 2026-11-01
 

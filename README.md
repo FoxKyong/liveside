@@ -202,6 +202,11 @@ cargo build --release
 The programs are then in `target/release/`: `liveside-gui`, `liveside-tui`
 and `liveside-daemon`.
 
+This works on 64-bit RISC-V (`riscv64`) as well, where there is no
+Flatpak: it was tried on an Orange Pi RV2 with Armbian (Debian 13), where
+the build takes about 45 minutes. The AUR package builds from source too,
+so it lists `aarch64` and `riscv64` beside `x86_64`.
+
 ## First steps
 
 1. Start `liveside-gui`, or `liveside-tui` in a terminal.
