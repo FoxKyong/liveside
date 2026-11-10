@@ -1044,7 +1044,18 @@ mod tests {
         // Once it has ended, the other takes it over by itself.
         first.stop("one").unwrap();
         settle(&mut first, &mut rx, |events, _| ended(events)).await;
-        assert!(!second.take_over().is_empty());
+        // Asked again, as the engine asks every few seconds: once, on a
+        // RISC-V board, the lock was not free yet, most likely held for a
+        // moment by a process another test was just starting.
+        let mut taken = Vec::new();
+        for _ in 0..20 {
+            taken = second.take_over();
+            if !taken.is_empty() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        assert!(!taken.is_empty());
         assert_eq!(second.statuses()[0].state, BotState::Running);
         second.stop("one").unwrap();
         settle(&mut second, &mut rx, |events, _| ended(events)).await;
